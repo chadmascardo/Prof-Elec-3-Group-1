@@ -1,0 +1,7 @@
+{
+  "_note": "source can be a webcam index (0, 1), an IP-webcam URL, or an rtsp:// stream",
+  "cameras": [
+    { "name": "Lab 301", "source": 0 },
+    { "name": "Lab 302", "source": "http://172.19.241.230:8080/video" }
+  ]
+}

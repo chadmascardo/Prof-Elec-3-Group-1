@@ -1,0 +1,4 @@
+opencv-python>=4.10
+numpy>=1.26
+mysql-connector-python>=8.4
+python-dotenv>=1.0
