@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Security Logs & Snapshots</title>
+    <style>
+        body { background: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; text-align: center; }
+        
+        .btn-back {
+            display: inline-block;
+            background-color: #00adb5;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .container { max-width: 900px; margin: 0 auto; text-align: left; }
+        h1 { color: #ff5722; text-align: center; }
+        
+        table { width: 100%; border-collapse: collapse; background: #1c1c1c; border: 1px solid #2d2d2d; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid #2d2d2d; }
+        th { background: #252525; color: #00adb5; }
+        
+        .snapshot { width: 150px; border-radius: 4px; border: 1px solid #444; }
+        .no-snap { color: #777; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <br>
+    <a href="/" class="btn-back">⬅ Return to Live Streams</a>
+
+    <div class="container">
+        <h1>Recorded Logs & Security Snapshots</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp (Date & Time)</th>
+                    <th>Activity Status Message</th>
+                    <th>Captured Snapshot</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in log_list %}
+                <tr>
+                    <td>{{ log.time }}</td>
+                    <td>{{ log.msg }}</td>
+                    <td>
+                        {% if log.snapshot %}
+                            <a href="{{ url_for('static', filename=log.snapshot) }}" target="_blank">
+                                <img class="snapshot" src="{{ url_for('static', filename=log.snapshot) }}">
+                            </a>
+                        {% else %}
+                            <span class="no-snap">No Snapshot Captured</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</body>
+</html>

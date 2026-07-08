@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Surveillance Dashboard</title>
+    <style>
+        body { background: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #ffffff; }
+        .nav-bar { display: flex; justify-content: center; gap: 20px; align-items: center; margin-bottom: 15px; }
+        .btn-logs { display: inline-block; background-color: #ff5722; color: white; padding: 12px 30px; font-size: 16px; font-weight: bold; text-decoration: none; border-radius: 25px; transition: 0.2s ease; }
+        .btn-logs:hover { background-color: #e64a19; transform: scale(1.05); }
+        .btn-logout { color: #777; text-decoration: none; font-size: 14px; }
+        .btn-logout:hover { color: #ff5722; text-decoration: underline; }
+        .camera-grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+        .camera-box { background: #1c1c1c; padding: 15px; border-radius: 12px; border: 1px solid #2d2d2d; }
+        img { width: 480px; max-width: 95vw; border-radius: 8px; display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="nav-bar">
+        <a href="/logs_page" class="btn-logs">📁 View Logs & Snapshots</a>
+        <a href="/logout" class="btn-logout">Logout 🚪</a>
+    </div>
+
+    <h1>Room IC1001 Monitoring Dashboard</h1>
+
+    <div class="camera-grid">
+        <div class="camera-box">
+            <h3>Camera 1 (Classroom: 9:00 AM - 4:00 PM)</h3>
+            <img src="{{ url_for('video_feed_1') }}">
+        </div>
+        <div class="camera-box">
+            <h3>Camera 2 (Security Feed)</h3>
+            <img src="{{ url_for('video_feed_2') }}">
+        </div>
+    </div>
+
+</body>
+</html>
