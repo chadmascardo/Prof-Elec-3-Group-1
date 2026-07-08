@@ -70,35 +70,18 @@ class MysqlEventSink(EventSink):
     """Stores events in a MySQL server (created lazily: database and table
     are auto-created on first run).
 
-    mysql-connector-python is imported inside __init__ so the rest of the
+    Connection bootstrap lives in db.connect_with_database (shared with
+    users.MysqlUserStore); the connector is imported lazily there, so the
     system keeps working without the package when --storage sqlite is used.
     """
 
     def __init__(self, host: str = "127.0.0.1", port: int = 3306,
                  user: str = "root", password: str = "",
                  database: str = "face_surveillance"):
-        try:
-            import mysql.connector
-        except ImportError as exc:  # pragma: no cover
-            raise RuntimeError(
-                "mysql-connector-python is not installed - "
-                "run: pip install mysql-connector-python") from exc
+        from db import connect_with_database
         self._lock = threading.Lock()
-
-        bootstrap = mysql.connector.connect(
-            host=host, port=port, user=user, password=password)
-        try:
-            cur = bootstrap.cursor()
-            cur.execute(f"CREATE DATABASE IF NOT EXISTS `{database}` "
-                        "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
-            bootstrap.commit()
-            cur.close()
-        finally:
-            bootstrap.close()
-
-        self._conn = mysql.connector.connect(
-            host=host, port=port, user=user, password=password,
-            database=database)
+        self._conn = connect_with_database(host, port, user, password,
+                                           database)
         cur = self._conn.cursor()
         cur.execute(_MYSQL_SCHEMA)
         self._conn.commit()

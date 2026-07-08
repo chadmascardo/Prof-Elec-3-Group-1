@@ -34,7 +34,7 @@ class CooldownSnapshotStore(SnapshotStore):
     """Wraps another store; allows at most one snapshot per camera
     every `cooldown_s` seconds."""
 
-    def __init__(self, inner: SnapshotStore, cooldown_s: float = 30.0):
+    def __init__(self, inner: SnapshotStore, cooldown_s: float = 10.0):
         self._inner = inner
         self._cooldown = cooldown_s
         self._last: Dict[str, float] = {}
