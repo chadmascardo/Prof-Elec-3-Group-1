@@ -1,108 +1,154 @@
 import os
+import csv
+import io
 import cv2
 import datetime
 import time
 import numpy as np
-from flask import Flask, Response, render_template, request, redirect, url_for, session
+from flask import Flask, Response, render_template, request, redirect, url_for, session, jsonify
+from dotenv import load_dotenv
+import mysql.connector
+from mysql.connector import Error
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = "super_secure_secret_session_key_12345"
+app.secret_key = os.getenv("SECRET_KEY", "super_secure_secret_session_key_12345")
 
-# --- SYSTEM CONFIGURATION ---
-# Replace these IP addresses with your phone streaming links if they change
-PHONE_1_URL = "http://192.168.68.105:8080/stream.mjpg"   # iPhone (SimpleIPCam)
-PHONE_2_URL = "http://172.19.245.134:8080/videofeed"     # Android (IP Webcam)
-BACKUP_ADMIN_ID = "ADMIN2026"
+# --- SYSTEM CONFIGURATION (from .env) ---
+PHONE_1_URL   = os.getenv("PHONE_1_URL", "http://192.168.68.105:8080/stream.mjpg")
+PHONE_2_URL   = os.getenv("PHONE_2_URL", "http://172.19.245.134:8080/videofeed")
+BACKUP_ADMIN_ID = os.getenv("BACKUP_ADMIN_ID", "ADMIN2026")
+MOG2_MIN_AREA = int(os.getenv("MOG2_MIN_AREA", 1500))
+PROFILE_DIR   = "admin_profile"
 
-MOG2_MIN_AREA = 1500
-LOG_FILE = "data/activity_log.txt"
-PROFILE_DIR = "admin_profile"
-
-# Ensure all system directories exist automatically
-for folder in ["data", "static", PROFILE_DIR]:
+# Ensure directories exist
+for folder in ["static", PROFILE_DIR]:
     os.makedirs(folder, exist_ok=True)
-if not os.path.exists(LOG_FILE):
-    open(LOG_FILE, "w").close()
-
-# Load cascade files for face boundary checking
-_face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 
 # ---------------------------------------------------------------------------
-# FACE VERIFICATION ENGINE (LBPH PROFILE MATCHER)
+# DATABASE
 # ---------------------------------------------------------------------------
+
+def get_db():
+    """Open a new MySQL connection using .env credentials."""
+    return mysql.connector.connect(
+        host     = os.getenv("DB_HOST", "localhost"),
+        port     = int(os.getenv("DB_PORT", 3306)),
+        user     = os.getenv("DB_USER", "root"),
+        password = os.getenv("DB_PASSWORD", ""),
+        database = os.getenv("DB_NAME", "cctv_db"),
+    )
+
+def init_db():
+    """Create tables if they don't exist yet."""
+    ddl = [
+        """
+        CREATE TABLE IF NOT EXISTS rooms (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            room_id    VARCHAR(50) NOT NULL UNIQUE,
+            camera     VARCHAR(100) NOT NULL
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS classrooms (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            room_id     VARCHAR(50) NOT NULL,
+            offer_id    VARCHAR(50) NOT NULL,
+            time        VARCHAR(50) NOT NULL,
+            day_of_week VARCHAR(20) NOT NULL,
+            UNIQUE KEY uq_schedule (room_id, offer_id, day_of_week, time)
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS logs (
+            id            INT AUTO_INCREMENT PRIMARY KEY,
+            timestamp     DATETIME NOT NULL,
+            message       TEXT NOT NULL,
+            snapshot      VARCHAR(255) DEFAULT NULL
+        )
+        """,
+    ]
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        for stmt in ddl:
+            cur.execute(stmt)
+        conn.commit()
+        cur.close()
+        conn.close()
+        print("✅ [DB] Tables ready.")
+    except Error as e:
+        print(f"⚠️  [DB] init_db error: {e}")
+
+init_db()
+
+# ---------------------------------------------------------------------------
+# LOGGING (DB + flat-file fallback)
+# ---------------------------------------------------------------------------
+
+def log_event(message, snapshot_name=None):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # DB
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute(
+            "INSERT INTO logs (timestamp, message, snapshot) VALUES (%s, %s, %s)",
+            (timestamp, message, snapshot_name)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Error as e:
+        print(f"⚠️  [DB] log_event error: {e}")
+
+def check_time_status():
+    ph_now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8)))
+    t = ph_now.strftime("%H:%M")
+    return "CLASS_HOURS" if "09:00" <= t <= "16:00" else "OFF_HOURS"
+
+# ---------------------------------------------------------------------------
+# FACE VERIFICATION
+# ---------------------------------------------------------------------------
+
+_face_cascade   = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
 face_recognizer = cv2.face.LBPHFaceRecognizer_create()
 is_model_trained = False
 
 def train_admin_model():
-    """Reads your profile photo on startup and trains the recognition algorithm"""
     global is_model_trained
     img_path = os.path.join(PROFILE_DIR, "admin.jpg")
-    
     if not os.path.exists(img_path):
-        print(f"⚠️ [WARNING]: No reference image found at '{img_path}'. Defaulting to simple face checking.")
+        print(f"⚠️  No admin.jpg found at '{img_path}'. Face auth will use generic check.")
         is_model_trained = False
         return
-
-    reference_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-    if reference_img is None:
-        print("⚠️ [ERROR]: Cannot parse image. Check file format.")
+    ref = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+    if ref is None:
         is_model_trained = False
         return
-
-    faces = _face_cascade.detectMultiScale(reference_img, scaleFactor=1.1, minNeighbors=5)
-    if len(faces) == 0:
-        print("⚠️ [WARNING]: No face detected in 'admin.jpg'. Training on full image surface grid.")
-        face_recognizer.train([reference_img], np.array([1]))
-    else:
-        (x, y, w, h) = faces[0]
-        face_roi = reference_img[y:y+h, x:x+w]
-        face_recognizer.train([face_roi], np.array([1])) # Label 1 = Authorized Admin
-    
-    print("✅ [SUCCESS]: Face Verification Model successfully trained against admin.jpg snapshot matrix.")
+    faces = _face_cascade.detectMultiScale(ref, 1.1, 5)
+    roi   = ref[faces[0][1]:faces[0][1]+faces[0][3], faces[0][0]:faces[0][0]+faces[0][2]] if len(faces) else ref
+    face_recognizer.train([roi], np.array([1]))
     is_model_trained = True
+    print("✅ [Face] Model trained on admin.jpg.")
 
-# Boot training instantly on script startup
 train_admin_model()
 
 def verify_face_match(frame):
-    """Compares incoming webcam capture against trained admin matrix signatures"""
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.equalizeHist(gray)
-    faces = _face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60))
-
+    gray  = cv2.equalizeHist(cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY))
+    faces = _face_cascade.detectMultiScale(gray, 1.1, 5, minSize=(60, 60))
     if len(faces) == 0:
         return "NO_FACE"
-
-    (x, y, w, h) = faces[0]
-    captured_face_roi = gray[y:y+h, x:x+w]
-
+    x, y, w, h = faces[0]
+    roi = gray[y:y+h, x:x+w]
     if not is_model_trained:
         return "GENERIC_MATCH"
-
-    label, confidence = face_recognizer.predict(captured_face_roi)
-    
-    # Mathematical confidence proximity (lower means closer match)
-    if label == 1 and confidence < 75:
-        return "VERIFIED_ADMIN"
-    
-    return "UNKNOWN_USER"
+    label, conf = face_recognizer.predict(roi)
+    return "VERIFIED_ADMIN" if label == 1 and conf < 75 else "UNKNOWN_USER"
 
 # ---------------------------------------------------------------------------
-# CORE UTILITIES
-# ---------------------------------------------------------------------------
-
-def log_event(message, snapshot_name="NONE"):
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(LOG_FILE, "a") as f:
-        f.write(f"{timestamp}|{message}|{snapshot_name}\n")
-
-def check_time_status():
-    current_time_str = datetime.datetime.now().strftime("%H:%M")
-    # Routine Classroom Hours Window: 9:00 AM to 4:00 PM (16:00)
-    return "CLASS_HOURS" if "09:00" <= current_time_str <= "16:00" else "OFF_HOURS"
-
-# ---------------------------------------------------------------------------
-# WEB APPLICATION CONTROLLER ROUTES
+# AUTH ROUTES
 # ---------------------------------------------------------------------------
 
 @app.route("/login")
@@ -111,42 +157,39 @@ def login_page():
 
 @app.route("/backup_auth", methods=["POST"])
 def backup_auth():
-    user_input = request.form.get("admin_id")
-    if user_input == BACKUP_ADMIN_ID:
+    if request.form.get("admin_id") == BACKUP_ADMIN_ID:
         session["is_admin"] = True
-        log_event("Admin successfully logged in via Backup ID validation.")
+        log_event("Admin logged in via Backup ID.")
         return redirect(url_for("index"))
     return render_template("login.html", error="Invalid Backup Admin ID Code.")
 
 @app.route("/face_auth")
 def face_auth():
-    # Make sure background applications like MS Teams/Zoom are completely closed!
     cam = cv2.VideoCapture(0)
     if not cam.isOpened():
-        return render_template("login.html", error="Webcam access blocked. Make sure MS Teams/Zoom are completely closed from your background tray icons.")
-        
-    time.sleep(0.8) # Let camera light adjustments settle
+        return render_template("login.html", error="Webcam access blocked. Close Teams/Zoom first.")
+    time.sleep(0.8)
     ret, frame = cam.read()
     cam.release()
-
     if not ret or frame is None:
-        return render_template("login.html", error="Webcam frame capture timed out. Please try again.")
-
+        return render_template("login.html", error="Webcam capture timed out. Try again.")
     result = verify_face_match(frame)
-
     if result in ["VERIFIED_ADMIN", "GENERIC_MATCH"]:
         session["is_admin"] = True
-        log_event(f"Admin verified and logged in via Face Verification system ({result}).")
+        log_event(f"Admin logged in via Face Verification ({result}).")
         return redirect(url_for("index"))
     elif result == "NO_FACE":
-        return render_template("login.html", error="No face detected. Look straight into your webcam in a well-lit room.")
-    else:
-        return render_template("login.html", error="Access Denied! Face patterns do not match your authorized profile photo.")
+        return render_template("login.html", error="No face detected. Look straight at the webcam.")
+    return render_template("login.html", error="Access Denied. Face does not match admin profile.")
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login_page"))
+
+# ---------------------------------------------------------------------------
+# MAIN DASHBOARD
+# ---------------------------------------------------------------------------
 
 @app.route("/")
 def index():
@@ -155,13 +198,12 @@ def index():
     return render_template("index.html")
 
 # ---------------------------------------------------------------------------
-# REAL-TIME MOTION STREAM HOOKS
+# CAMERA STREAMS
 # ---------------------------------------------------------------------------
 
 def generate_stream(stream_url, camera_id):
     cap = cv2.VideoCapture(stream_url, cv2.CAP_ANY)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
-    
     bg_sub = cv2.createBackgroundSubtractorMOG2(history=400, varThreshold=35, detectShadows=False)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     last_log_time = 0
@@ -177,25 +219,20 @@ def generate_stream(stream_url, camera_id):
         _, fg_mask = cv2.threshold(fg_mask, 200, 255, cv2.THRESH_BINARY)
         fg_mask = cv2.morphologyEx(fg_mask, cv2.MORPH_OPEN, kernel, iterations=2)
         fg_mask = cv2.dilate(fg_mask, kernel, iterations=2)
-        
         contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         motion_detected = any(cv2.contourArea(c) > MOG2_MIN_AREA for c in contours)
 
         if motion_detected:
-            current_time = time.time()
-            if current_time - last_log_time > 5: # 5-second anti-spam block
-                time_status = check_time_status()
-
-                if time_status == "CLASS_HOURS":
-                    log_event(f"Camera {camera_id}: Routine movement logged during standard class periods.", snapshot_name="NONE")
+            now = time.time()
+            if now - last_log_time > 5:
+                if check_time_status() == "CLASS_HOURS":
+                    log_event(f"Camera {camera_id}: Routine movement during class hours.")
                 else:
-                    img_filename = f"cam{camera_id}_alert_{int(current_time)}.jpg"
-                    cv2.imwrite(f"static/{img_filename}", frame)
-                    log_event(f"!!! SECURITY ALERT !!! Unexpected off-hours activity logged in room space.", img_filename)
+                    fname = f"cam{camera_id}_alert_{int(now)}.jpg"
+                    cv2.imwrite(f"static/{fname}", frame)
+                    log_event(f"!!! SECURITY ALERT !!! Off-hours activity on Camera {camera_id}.", fname)
+                last_log_time = now
 
-                last_log_time = current_time
-
-        # Visual Dashboard HUD Render Layout
         h_f, w_f = frame.shape[:2]
         if motion_detected:
             cv2.rectangle(frame, (0, 0), (190, 32), (0, 0, 255), -1)
@@ -207,9 +244,9 @@ def generate_stream(stream_url, camera_id):
         ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cv2.putText(frame, f"CAM {camera_id} | {ts}", (10, h_f - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.50, (255, 255, 255), 1)
 
-        ret2, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        ret2, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if ret2:
-            yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + buffer.tobytes() + b"\r\n")
+            yield (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + buf.tobytes() + b"\r\n")
 
 @app.route("/video_feed_1")
 def video_feed_1():
@@ -221,21 +258,156 @@ def video_feed_2():
     if not session.get("is_admin"): return Response(status=403)
     return Response(generate_stream(PHONE_2_URL, 2), mimetype="multipart/x-mixed-replace; boundary=frame")
 
+# ---------------------------------------------------------------------------
+# LOGS PAGE
+# ---------------------------------------------------------------------------
+
 @app.route("/logs_page")
 def logs_page():
     if not session.get("is_admin"): return redirect(url_for("login_page"))
-    parsed_logs = []
-    if os.path.exists(LOG_FILE):
-        with open(LOG_FILE, "r") as f:
-            lines = f.readlines()
-        for line in lines[::-1]:
-            if "|" in line:
-                parts = line.strip().split("|")
-                if len(parts) == 3:
-                    parsed_logs.append({
-                        "time": parts[0], "msg": parts[1], "snapshot": None if parts[2] == "NONE" else parts[2]
-                    })
-    return render_template("logs.html", log_list=parsed_logs)
+    log_list = []
+    try:
+        conn = get_db()
+        cur  = conn.cursor(dictionary=True)
+        cur.execute("SELECT timestamp, message, snapshot FROM logs ORDER BY timestamp DESC")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        for row in rows:
+            log_list.append({
+                "time":     str(row["timestamp"]),
+                "msg":      row["message"],
+                "snapshot": row["snapshot"],
+            })
+    except Error as e:
+        print(f"⚠️  [DB] logs_page error: {e}")
+    return render_template("logs.html", log_list=log_list)
+
+# ---------------------------------------------------------------------------
+# CSV UPLOAD
+# ---------------------------------------------------------------------------
+
+@app.route("/upload")
+def upload_page():
+    if not session.get("is_admin"): return redirect(url_for("login_page"))
+    return render_template("upload.html")
+
+
+@app.route("/upload/rooms", methods=["POST"])
+def upload_rooms():
+    if not session.get("is_admin"): return jsonify({"error": "Unauthorized"}), 403
+    file = request.files.get("file")
+    if not file or not file.filename.endswith(".csv"):
+        return jsonify({"error": "Please upload a valid .csv file."}), 400
+
+    stream  = io.StringIO(file.stream.read().decode("utf-8-sig"))
+    reader  = csv.DictReader(stream)
+
+    # Normalize headers (strip whitespace, lowercase)
+    required = {"room_id", "camera"}
+    headers  = {h.strip().lower() for h in (reader.fieldnames or [])}
+    missing  = required - headers
+    if missing:
+        return jsonify({"error": f"Missing columns: {', '.join(missing)}"}), 400
+
+    inserted = updated = skipped = 0
+    errors   = []
+
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        for i, row in enumerate(reader, start=2):
+            row = {k.strip().lower(): v.strip() for k, v in row.items()}
+            room_id = row.get("room_id", "")
+            camera  = row.get("camera", "")
+            if not room_id or not camera:
+                errors.append(f"Row {i}: empty room_id or camera — skipped.")
+                skipped += 1
+                continue
+            cur.execute(
+                """
+                INSERT INTO rooms (room_id, camera)
+                VALUES (%s, %s)
+                ON DUPLICATE KEY UPDATE camera = VALUES(camera)
+                """,
+                (room_id, camera)
+            )
+            if cur.rowcount == 1:
+                inserted += 1
+            else:
+                updated += 1
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Error as e:
+        return jsonify({"error": f"Database error: {e}"}), 500
+
+    return jsonify({
+        "success": True,
+        "inserted": inserted,
+        "updated":  updated,
+        "skipped":  skipped,
+        "errors":   errors,
+    })
+
+
+@app.route("/upload/classrooms", methods=["POST"])
+def upload_classrooms():
+    if not session.get("is_admin"): return jsonify({"error": "Unauthorized"}), 403
+    file = request.files.get("file")
+    if not file or not file.filename.endswith(".csv"):
+        return jsonify({"error": "Please upload a valid .csv file."}), 400
+
+    stream   = io.StringIO(file.stream.read().decode("utf-8-sig"))
+    reader   = csv.DictReader(stream)
+    required = {"room_id", "offer_id", "time", "day_of_week"}
+    headers  = {h.strip().lower() for h in (reader.fieldnames or [])}
+    missing  = required - headers
+    if missing:
+        return jsonify({"error": f"Missing columns: {', '.join(missing)}"}), 400
+
+    inserted = updated = skipped = 0
+    errors   = []
+
+    try:
+        conn = get_db()
+        cur  = conn.cursor()
+        for i, row in enumerate(reader, start=2):
+            row      = {k.strip().lower(): v.strip() for k, v in row.items()}
+            room_id  = row.get("room_id", "")
+            offer_id = row.get("offer_id", "")
+            sched_time = row.get("time", "")
+            dow      = row.get("day_of_week", "")
+            if not all([room_id, offer_id, sched_time, dow]):
+                errors.append(f"Row {i}: one or more empty fields — skipped.")
+                skipped += 1
+                continue
+            cur.execute(
+                """
+                INSERT INTO classrooms (room_id, offer_id, time, day_of_week)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE time = VALUES(time)
+                """,
+                (room_id, offer_id, sched_time, dow)
+            )
+            if cur.rowcount == 1:
+                inserted += 1
+            else:
+                updated += 1
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Error as e:
+        return jsonify({"error": f"Database error: {e}"}), 500
+
+    return jsonify({
+        "success":  True,
+        "inserted": inserted,
+        "updated":  updated,
+        "skipped":  skipped,
+        "errors":   errors,
+    })
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
