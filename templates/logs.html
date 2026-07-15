@@ -3,136 +3,664 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Chronology Event Logs</title>
+    <title>Activity Logs — IC1001</title>
     <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:        #0a0a0c;
+            --surface:   #111114;
+            --surface-2: #18181c;
+            --border:    #222228;
+            --border-2:  #2e2e38;
+            --text:      #e8e8ec;
+            --muted:     #6b6b7a;
+            --accent:    #f97316;
+            --accent-dim:#7c3210;
+            --green:     #22c55e;
+            --red:       #ef4444;
+            --yellow:    #eab308;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #09090b;
-            color: #f4f4f5;
-            margin: 0;
-            padding: 20px;
-        }
-        .header {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #27272a;
-            margin-bottom: 25px;
+            flex-direction: column;
         }
-        h1 { margin: 0; font-size: 24px; }
-        .btn-back {
-            background: #27272a;
-            color: white;
-            padding: 10px 18px;
-            border-radius: 6px;
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            height: 56px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        .breadcrumb {
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .breadcrumb a {
+            color: var(--text);
             text-decoration: none;
             font-weight: 600;
-            font-size: 14px;
-            border: 1px solid #3f3f46;
-            transition: background 0.2s;
         }
-        .btn-back:hover { background: #3f3f46; }
-        
-        .table-container {
-            background: #18181b;
-            border: 1px solid #27272a;
-            border-radius: 8px;
+
+        .breadcrumb a:hover { color: var(--accent); }
+        .breadcrumb span { margin: 0 6px; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: background 0.15s, color 0.15s;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+            border: 1px solid var(--border-2);
+        }
+        .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+
+        /* ── Main ── */
+        .main {
+            flex: 1;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* ── Toolbar ── */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .toolbar-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .page-sub {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Dropdowns shared style */
+        .type-select, .cam-select {
+            background: var(--surface);
+            border: 1px solid var(--border-2);
+            color: var(--text);
+            padding: 7px 28px 7px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6b7a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 9px center;
+            transition: border-color 0.15s;
+        }
+
+        .type-select:hover, .cam-select:hover { border-color: var(--border-2); }
+        .type-select:focus, .cam-select:focus { border-color: var(--accent); }
+
+        /* ── Pagination ── */
+        .pagination-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            background: var(--surface-2);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .pagination-info {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .pagination-info strong { color: var(--text); }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-2);
+            background: transparent;
+            color: var(--muted);
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            user-select: none;
+        }
+
+        .page-btn:hover:not(:disabled):not(.active) {
+            background: var(--surface-2);
+            color: var(--text);
+        }
+
+        .page-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .page-ellipsis {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 0 4px;
+        }
+
+        .per-page-wrap {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .per-page-select {
+            background: var(--surface);
+            border: 1px solid var(--border-2);
+            color: var(--text);
+            padding: 4px 22px 4px 8px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6b7a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 7px center;
+        }
+
+        /* Count badge */
+        .count-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .count-badge strong { color: var(--text); }
+
+        /* ── Table ── */
+        .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            text-align: left;
         }
-        th {
-            background: #202024;
-            color: #a1a1aa;
-            padding: 14px 16px;
-            font-size: 13px;
+
+        thead th {
+            background: var(--surface-2);
+            padding: 11px 16px;
+            font-size: 11px;
+            font-weight: 700;
             text-transform: uppercase;
-            font-weight: 600;
-            border-bottom: 1px solid #27272a;
+            letter-spacing: 0.8px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            white-space: nowrap;
         }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.1s;
+        }
+
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover td { background: rgba(255,255,255,0.02); }
+        tbody tr.hidden { display: none; }
+
         td {
-            padding: 14px 16px;
-            font-size: 14px;
-            border-bottom: 1px solid #27272a;
-            color: #e4e4e7;
+            padding: 13px 16px;
+            font-size: 13px;
+            color: var(--text);
             vertical-align: middle;
         }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #202024; }
-        
-        .timestamp { color: #a1a1aa; font-family: monospace; }
-        
-        .snapshot-thumbnail {
-            width: 120px;
-            height: auto;
-            aspect-ratio: 16 / 9;
-            background: #000;
-            border-radius: 4px;
-            border: 1px solid #3f3f46;
-            display: block;
-            object-fit: cover;
-            cursor: pointer;
-            transition: transform 0.2s;
+
+        /* Timestamp */
+        .ts-date { color: var(--muted); font-size: 11px; margin-bottom: 2px; }
+        .ts-time { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 600; }
+
+        /* Camera pill */
+        .cam-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
         }
-        .snapshot-thumbnail:hover { transform: scale(1.05); }
+
+        .cam-pill.cam1 {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .cam-pill.cam2 {
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.2);
+        }
+
+        .cam-pill.system {
+            background: rgba(107, 107, 122, 0.15);
+            color: var(--muted);
+            border: 1px solid var(--border-2);
+        }
+
+        /* Event type badge */
+        .type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .type-badge.alert {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+        }
+
+        .type-badge.motion {
+            background: rgba(234, 179, 8, 0.12);
+            color: var(--yellow);
+        }
+
+        .type-badge.auth {
+            background: rgba(34, 197, 94, 0.12);
+            color: var(--green);
+        }
+
+        .type-badge.info {
+            background: rgba(107, 107, 122, 0.15);
+            color: var(--muted);
+        }
+
+        /* Message */
+        .msg-text {
+            line-height: 1.45;
+            color: var(--text);
+        }
+
+        .msg-text.alert-msg { color: var(--red); }
+
+        /* Snapshot */
+        .snapshot-thumb {
+            width: 100px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid var(--border-2);
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.15s;
+            display: block;
+        }
+
+        .snapshot-thumb:hover {
+            transform: scale(1.06);
+            border-color: var(--accent);
+        }
+
         .no-snap {
-            color: #52525b;
-            font-size: 12px;
+            color: var(--muted);
+            font-size: 11px;
             font-style: italic;
         }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+        .empty-title { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+        .empty-sub { font-size: 13px; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <div>
-        <h1>System Activity Tracking Timeline Records</h1>
-        <span style="color: #71717a; font-size: 13px;">Parsing local dynamic flat-file document arrays</span>
+<!-- Topbar -->
+<div class="topbar">
+    <div class="topbar-left">
+        <div class="logo-dot"></div>
+        <div class="breadcrumb">
+            <a href="{{ url_for('index') }}">IC1001 Surveillance</a>
+            <span>/</span>
+            Activity Logs
+        </div>
     </div>
-    <a href="{{ url_for('index') }}" class="btn-back">⬅ Return to Main Grid Live Streams</a>
+    <a href="{{ url_for('index') }}" class="btn btn-ghost">← Back to Dashboard</a>
 </div>
 
-<div class="table-container">
-    <table>
-        <thead>
-            <tr>
-                <th style="width: 20%;">System Log Timestamp</th>
-                <th style="width: 55%;">Operational Tracking Event Description</th>
-                <th style="width: 25%;">Captured Snapshot Matrix</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% if log_list %}
-                {% for log in log_list %}
+<!-- Main -->
+<div class="main">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="page-title">Activity Logs</div>
+            <div class="page-sub" id="log-count-label">All events from both cameras</div>
+        </div>
+        <div class="toolbar-right">
+            <!-- Camera filter dropdown -->
+            <select class="cam-select" id="cam-filter">
+                <option value="all">All Cameras</option>
+                <option value="1">CAM 01</option>
+                <option value="2">CAM 02</option>
+                <option value="system">System</option>
+            </select>
+            <!-- Type filter -->
+            <select class="type-select" id="type-filter">
+                <option value="all">All Types</option>
+                <option value="alert">Security Alerts</option>
+                <option value="motion">Motion Events</option>
+                <option value="auth">Auth Events</option>
+            </select>
+            <!-- Count -->
+            <div class="count-badge">
+                <strong id="visible-count">{{ log_list|length }}</strong> entries
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+        {% if log_list %}
+        <table id="log-table">
+            <thead>
                 <tr>
-                    <td class="timestamp">{{ log.time }}</td>
-                    <td>{{ log.msg }}</td>
+                    <th style="width:130px;">Timestamp</th>
+                    <th style="width:90px;">Camera</th>
+                    <th style="width:110px;">Type</th>
+                    <th>Event</th>
+                    <th style="width:120px;">Snapshot</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in log_list %}
+                {% set is_alert = "ALERT" in log.msg or "alert" in log.msg.lower() %}
+                {% set is_motion = "movement" in log.msg.lower() or "motion" in log.msg.lower() or "Camera" in log.msg %}
+                {% set is_auth = "logged in" in log.msg.lower() or "verified" in log.msg.lower() %}
+                {% set cam_num = "1" if "Camera 1" in log.msg else ("2" if "Camera 2" in log.msg else "system") %}
+
+                <tr
+                    data-cam="{{ cam_num }}"
+                    data-type="{{ 'alert' if is_alert else ('motion' if is_motion else ('auth' if is_auth else 'info')) }}"
+                >
+                    <td>
+                        <div class="ts-date">{{ log.time[:10] }}</div>
+                        <div class="ts-time">{{ log.time[11:] }}</div>
+                    </td>
+                    <td>
+                        {% if cam_num == "1" %}
+                            <span class="cam-pill cam1">● CAM 01</span>
+                        {% elif cam_num == "2" %}
+                            <span class="cam-pill cam2">● CAM 02</span>
+                        {% else %}
+                            <span class="cam-pill system">SYSTEM</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if is_alert %}
+                            <span class="type-badge alert">🔴 Alert</span>
+                        {% elif is_motion %}
+                            <span class="type-badge motion">⚠ Motion</span>
+                        {% elif is_auth %}
+                            <span class="type-badge auth">✔ Auth</span>
+                        {% else %}
+                            <span class="type-badge info">ℹ Info</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="msg-text {% if is_alert %}alert-msg{% endif %}">{{ log.msg }}</div>
+                    </td>
                     <td>
                         {% if log.snapshot %}
                             <a href="{{ url_for('static', filename=log.snapshot) }}" target="_blank">
-                                <img class="snapshot-thumbnail" src="{{ url_for('static', filename=log.snapshot) }}" alt="Preview Missing">
+                                <img
+                                    class="snapshot-thumb"
+                                    src="{{ url_for('static', filename=log.snapshot) }}"
+                                    alt="Snapshot"
+                                    title="Click to open full size"
+                                >
                             </a>
                         {% else %}
-                            <span class="no-snap">No Snapshot Captured (Class Hours Mode)</span>
+                            <span class="no-snap">No snapshot</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="3" style="text-align: center; color: #71717a; padding: 30px;">
-                        No activity metrics logged in text storage files yet.
-                    </td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+        <!-- Pagination -->
+        <div class="pagination-wrap" id="pagination-wrap">
+            <div class="pagination-info" id="pagination-info">Showing — of — entries</div>
+            <div class="pagination-controls" id="pagination-controls"></div>
+            <div class="per-page-wrap">
+                Rows per page
+                <select class="per-page-select" id="per-page">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">No logs yet</div>
+            <div class="empty-sub">Events will appear here once the cameras detect activity.</div>
+        </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+    const camSelect   = document.getElementById('cam-filter');
+    const typeSelect  = document.getElementById('type-filter');
+    const perPageSel  = document.getElementById('per-page');
+    const allRows     = Array.from(document.querySelectorAll('#log-table tbody tr'));
+    const countEl     = document.getElementById('visible-count');
+    const labelEl     = document.getElementById('log-count-label');
+    const infoEl      = document.getElementById('pagination-info');
+    const controlsEl  = document.getElementById('pagination-controls');
+
+    let currentPage = 1;
+
+    function getFiltered() {
+        const cam  = camSelect.value;
+        const type = typeSelect.value;
+        return allRows.filter(row => {
+            const camMatch  = cam  === 'all' || row.dataset.cam  === cam;
+            const typeMatch = type === 'all' || row.dataset.type === type;
+            return camMatch && typeMatch;
+        });
+    }
+
+    function render() {
+        const perPage   = parseInt(perPageSel.value);
+        const filtered  = getFiltered();
+        const total     = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(total / perPage));
+
+        // Clamp page
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        const start = (currentPage - 1) * perPage;
+        const end   = start + perPage;
+
+        // Hide all rows first
+        allRows.forEach(r => r.classList.add('hidden'));
+
+        // Show only current page rows
+        filtered.forEach((row, i) => {
+            if (i >= start && i < end) row.classList.remove('hidden');
+        });
+
+        // Count badge
+        countEl.textContent = total;
+
+        // Subtitle
+        const camLabel  = camSelect.value === 'all' ? 'all cameras' : (camSelect.value === 'system' ? 'system events' : `CAM 0${camSelect.value}`);
+        const typeLabel = typeSelect.value === 'all' ? '' : ` · ${typeSelect.value} events`;
+        labelEl.textContent = `Showing ${camLabel}${typeLabel}`;
+
+        // Pagination info
+        const from = total === 0 ? 0 : start + 1;
+        const to   = Math.min(end, total);
+        infoEl.innerHTML = `Showing <strong>${from}–${to}</strong> of <strong>${total}</strong> entries`;
+
+        // Build page buttons
+        controlsEl.innerHTML = '';
+
+        const prevBtn = makeBtn('←', currentPage === 1);
+        prevBtn.addEventListener('click', () => { currentPage--; render(); });
+        controlsEl.appendChild(prevBtn);
+
+        // Page number logic: show first, last, current ±1, with ellipsis
+        const pages = getPageNumbers(currentPage, totalPages);
+        pages.forEach(p => {
+            if (p === '…') {
+                const el = document.createElement('span');
+                el.className = 'page-ellipsis';
+                el.textContent = '…';
+                controlsEl.appendChild(el);
+            } else {
+                const btn = makeBtn(p, false, p === currentPage);
+                btn.addEventListener('click', () => { currentPage = p; render(); });
+                controlsEl.appendChild(btn);
+            }
+        });
+
+        const nextBtn = makeBtn('→', currentPage === totalPages);
+        nextBtn.addEventListener('click', () => { currentPage++; render(); });
+        controlsEl.appendChild(nextBtn);
+    }
+
+    function makeBtn(label, disabled, active = false) {
+        const btn = document.createElement('button');
+        btn.className = 'page-btn' + (active ? ' active' : '');
+        btn.textContent = label;
+        btn.disabled = disabled;
+        return btn;
+    }
+
+    function getPageNumbers(current, total) {
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+        const pages = [];
+        pages.push(1);
+        if (current > 3) pages.push('…');
+        for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+            pages.push(i);
+        }
+        if (current < total - 2) pages.push('…');
+        pages.push(total);
+        return pages;
+    }
+
+    camSelect.addEventListener('change',  () => { currentPage = 1; render(); });
+    typeSelect.addEventListener('change', () => { currentPage = 1; render(); });
+    perPageSel.addEventListener('change', () => { currentPage = 1; render(); });
+
+    render();
+</script>
 
 </body>
 </html>
