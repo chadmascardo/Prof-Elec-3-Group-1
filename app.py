@@ -1,5 +1,10 @@
 import os
-import cv2
+try:
+    import cv2
+except ImportError as exc:
+    raise ImportError(
+        "OpenCV is required for this application. Install it with 'pip install opencv-python'."
+    ) from exc
 import datetime
 import time
 from flask import Flask, Response, render_template, request, redirect, url_for, session
@@ -8,8 +13,8 @@ app = Flask(__name__)
 app.secret_key = "super_secure_secret_session_key_12345"
 
 # --- SYSTEM SETTINGS ---
-PHONE_1_URL = "http://172.19.254.179:8080/stream.mjpg"   # iPhone (SimpleIPCam)
-PHONE_2_URL = "0"           # Android (IP Webcam)
+PHONE_1_URL = "http://192.168.1.12:8080/stream.mjpg"   # iPhone (SimpleIPCam)
+PHONE_2_URL = 0             # Laptop webcam. Use 1 if you have another camera.
 BACKUP_ADMIN_ID = "ADMIN2026"
 
 
@@ -109,10 +114,42 @@ def draw_living_detections(frame, detections):
 # UTILITIES
 # ---------------------------------------------------------------------------
 
-def log_event(message, snapshot_name="NONE"):
+def log_event(message, snapshot_name="NONE", camera_id=None):
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(LOG_FILE, "a") as f:
-        f.write(f"{timestamp}|{message}|{snapshot_name}\n")
+        if camera_id in (1, 2):
+            f.write(f"{timestamp}|{camera_id}|{message}|{snapshot_name}\n")
+        else:
+            f.write(f"{timestamp}|{message}|{snapshot_name}\n")
+
+
+def parse_log_line(line):
+    parts = line.strip().split("|")
+    if len(parts) == 4:
+        timestamp, camera_id, message, snapshot_name = parts
+    elif len(parts) == 3:
+        timestamp, message, snapshot_name = parts
+        camera_id = None
+        if message.startswith("Camera 1") or "Camera 1:" in message:
+            camera_id = "1"
+        elif message.startswith("Camera 2") or "Camera 2:" in message:
+            camera_id = "2"
+        elif snapshot_name.startswith("cam1_"):
+            camera_id = "1"
+        elif snapshot_name.startswith("cam2_"):
+            camera_id = "2"
+    else:
+        return None
+
+    if camera_id not in ("1", "2"):
+        return None
+
+    return {
+        "camera_id": int(camera_id),
+        "time": timestamp,
+        "msg": message,
+        "snapshot": None if snapshot_name == "NONE" else snapshot_name,
+    }
 
 
 def check_time_status():
@@ -243,6 +280,8 @@ def open_capture(stream_url):
       model, without stale frame pile-up causing flicker
     - No FFMPEG-specific timeout props: they silently break other backends
     """
+    if isinstance(stream_url, str) and stream_url.isdigit():
+        stream_url = int(stream_url)
     cap = cv2.VideoCapture(stream_url, cv2.CAP_ANY)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 4)
     return cap
@@ -297,6 +336,7 @@ def generate_stream(stream_url, camera_id):
     cap    = make_cap()
     bg_sub = make_bgsub()
     last_log_time  = 0
+    last_student_log_time = 0
     consec_failures = 0
 
     while True:
@@ -338,19 +378,36 @@ def generate_stream(stream_url, camera_id):
             contours, _ = cv2.findContours(fg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
             motion_blobs = [c for c in contours if cv2.contourArea(c) > MOG2_MIN_AREA]
         except Exception as exc:
-            log_event(f"Camera {camera_id} MOG2 error: {exc}")
+            log_event(f"Camera {camera_id} MOG2 error: {exc}", camera_id=camera_id)
 
         # ------------------------------------------------------------------ #
         # STAGE 2 — MobileNet-SSD (only when Stage 1 found something)         #
         # ------------------------------------------------------------------ #
         living_alert      = False
         living_detections = []
+        student_detected  = False
+        face_count        = 0
 
         if motion_blobs:
             try:
+                face_count = detect_faces(frame)
+                student_detected = face_count > 0
+            except Exception as exc:
+                log_event(f"Camera {camera_id} face detection error: {exc}", camera_id=camera_id)
+
+            if student_detected:
+                current_time = time.time()
+                if current_time - last_student_log_time > 5:
+                    log_event(
+                        f"Camera {camera_id}: Motion detected - student face detected ({face_count} face/s).",
+                        camera_id=camera_id,
+                    )
+                    last_student_log_time = current_time
+
+            try:
                 living_alert, living_detections = contains_living_thing(frame)
             except Exception as exc:
-                log_event(f"Camera {camera_id} DNN error: {exc}")
+                log_event(f"Camera {camera_id} DNN error: {exc}", camera_id=camera_id)
 
             if living_alert:
                 current_time = time.time()
@@ -359,13 +416,17 @@ def generate_stream(stream_url, camera_id):
                     labels_str = ", ".join(sorted({l for l, _, _ in living_detections}))
                     if camera_id == 1:
                         if time_status == "CLASS_HOURS":
-                            log_event(f"Camera 1: [{labels_str}] detected during class hours.")
+                            log_event(
+                                f"Camera 1: [{labels_str}] detected during class hours.",
+                                camera_id=1,
+                            )
                         else:
                             img_filename = f"cam1_alert_{int(current_time)}.jpg"
                             cv2.imwrite(f"static/{img_filename}", frame)
                             log_event(
                                 f"!!! SECURITY ALERT !!! [{labels_str}] in Classroom View after hours.",
                                 img_filename,
+                                camera_id=1,
                             )
                     elif camera_id == 2:
                         if time_status == "OFF_HOURS":
@@ -374,9 +435,13 @@ def generate_stream(stream_url, camera_id):
                             log_event(
                                 f"!!! SECURITY ALERT !!! [{labels_str}] — Perimeter breach during lock window.",
                                 img_filename,
+                                camera_id=2,
                             )
                         else:
-                            log_event(f"Camera 2: [{labels_str}] in daytime field monitoring.")
+                            log_event(
+                                f"Camera 2: [{labels_str}] in daytime field monitoring.",
+                                camera_id=2,
+                            )
                     last_log_time = current_time
 
         # ------------------------------------------------------------------ #
@@ -385,7 +450,11 @@ def generate_stream(stream_url, camera_id):
         h_f, w_f = frame.shape[:2]
 
         # 1. Detection status banner (top-left)
-        if living_alert:
+        if student_detected:
+            cv2.rectangle(frame, (0, 0), (330, 38), (0, 0, 0), -1)
+            cv2.putText(frame, "MOTION DETECTED: STUDENT", (6, 26),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 220, 60), 2)
+        elif living_alert:
             draw_living_detections(frame, living_detections)
             cv2.rectangle(frame, (0, 0), (295, 38), (0, 0, 0), -1)
             cv2.putText(frame, "!! LIVING THING DETECTED !!", (6, 26),
@@ -455,22 +524,25 @@ def video_feed_2():
 def logs_page():
     if not session.get("is_admin"):
         return redirect(url_for("login_page"))
-    parsed_logs = []
+    camera_1_logs = []
+    camera_2_logs = []
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE, "r") as f:
             lines = f.readlines()
         for line in lines[::-1]:
             if "|" in line:
-                parts = line.strip().split("|")
-                if len(parts) == 3:
-                    parsed_logs.append(
-                        {
-                            "time": parts[0],
-                            "msg": parts[1],
-                            "snapshot": None if parts[2] == "NONE" else parts[2],
-                        }
-                    )
-    return render_template("logs.html", log_list=parsed_logs)
+                parsed_log = parse_log_line(line)
+                if not parsed_log:
+                    continue
+                if parsed_log["camera_id"] == 1:
+                    camera_1_logs.append(parsed_log)
+                elif parsed_log["camera_id"] == 2:
+                    camera_2_logs.append(parsed_log)
+    return render_template(
+        "logs.html",
+        camera_1_logs=camera_1_logs,
+        camera_2_logs=camera_2_logs,
+    )
 
 
 if __name__ == "__main__":

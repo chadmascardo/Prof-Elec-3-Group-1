@@ -16,15 +16,26 @@
             margin-bottom: 20px;
         }
 
-        .container { max-width: 900px; margin: 0 auto; text-align: left; }
+        .container { max-width: 1200px; margin: 0 auto; text-align: left; }
         h1 { color: #ff5722; text-align: center; }
+        h2 { color: #e0e0e0; text-align: center; margin: 0 0 12px; font-size: 16px; }
         
-        table { width: 100%; border-collapse: collapse; background: #1c1c1c; border: 1px solid #2d2d2d; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #2d2d2d; }
-        th { background: #252525; color: #00adb5; }
+        .logs-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; background: #1c1c1c; border: 1px solid #2d2d2d; border-radius: 8px; padding: 20px; }
+        .log-section { min-width: 0; }
+        .table-scroll { max-height: 600px; overflow: auto; border: 1px solid #444; background: #1c1c1c; }
+        table { width: 100%; min-width: 560px; border-collapse: collapse; background: #1c1c1c; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid #2d2d2d; white-space: nowrap; }
+        th { background: #252525; color: #00adb5; position: sticky; top: 0; z-index: 1; }
         
-        .snapshot { width: 150px; border-radius: 4px; border: 1px solid #444; }
+        .snapshot-link { color: #ffffff; font-weight: 700; text-decoration: none; }
+        .snapshot-link:hover { color: #00adb5; text-decoration: underline; }
         .no-snap { color: #777; font-style: italic; }
+        .empty-log { color: #777; font-style: italic; text-align: center; }
+
+        @media (max-width: 900px) {
+            body { padding: 14px; }
+            .logs-row { grid-template-columns: 1fr; padding: 14px; }
+        }
     </style>
 </head>
 <body>
@@ -34,32 +45,76 @@
 
     <div class="container">
         <h1>Recorded Logs & Security Snapshots</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Timestamp (Date & Time)</th>
-                    <th>Activity Status Message</th>
-                    <th>Captured Snapshot</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in log_list %}
-                <tr>
-                    <td>{{ log.time }}</td>
-                    <td>{{ log.msg }}</td>
-                    <td>
-                        {% if log.snapshot %}
-                            <a href="{{ url_for('static', filename=log.snapshot) }}" target="_blank">
-                                <img class="snapshot" src="{{ url_for('static', filename=log.snapshot) }}">
-                            </a>
-                        {% else %}
-                            <span class="no-snap">No Snapshot Captured</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+        <div class="logs-row">
+            <section class="log-section">
+                <h2>Camera 1 Recorded Logs</h2>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp (Date & Time)</th>
+                                <th>Activity Status Message</th>
+                                <th>Captured Snapshot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in camera_1_logs %}
+                            <tr>
+                                <td>{{ log.time }}</td>
+                                <td>{{ log.msg }}</td>
+                                <td>
+                                    {% if log.snapshot %}
+                                        <a class="snapshot-link" href="{{ url_for('static', filename=log.snapshot) }}" target="_blank">View Snapshot</a>
+                                    {% else %}
+                                        <span class="no-snap">No Snapshot Captured</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="empty-log">No Camera 1 logs recorded yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="log-section">
+                <h2>Camera 2 Recorded Logs</h2>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp (Date & Time)</th>
+                                <th>Activity Status Message</th>
+                                <th>Captured Snapshot</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in camera_2_logs %}
+                            <tr>
+                                <td>{{ log.time }}</td>
+                                <td>{{ log.msg }}</td>
+                                <td>
+                                    {% if log.snapshot %}
+                                        <a class="snapshot-link" href="{{ url_for('static', filename=log.snapshot) }}" target="_blank">View Snapshot</a>
+                                    {% else %}
+                                        <span class="no-snap">No Snapshot Captured</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="empty-log">No Camera 2 logs recorded yet.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </div>
 
 </body>
