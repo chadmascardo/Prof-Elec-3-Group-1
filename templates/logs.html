@@ -2,65 +2,415 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Security Logs & Snapshots</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeeLab — Activity Logs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; text-align: center; }
-        
-        .btn-back {
-            display: inline-block;
-            background-color: #00adb5;
-            color: white;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 20px;
-            margin-bottom: 20px;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:      #F7F7F5;
+            --surface: #FFFFFF;
+            --border:  #E4E4E0;
+            --text:    #111110;
+            --text-2:  #6B6B67;
+            --muted:   #A8A8A4;
+            --ink:     #111110;
+            --green:   #1A7A3C;
+            --red:     #C0392B;
+            --yellow:  #92400E;
         }
 
-        .container { max-width: 900px; margin: 0 auto; text-align: left; }
-        h1 { color: #ff5722; text-align: center; }
-        
-        table { width: 100%; border-collapse: collapse; background: #1c1c1c; border: 1px solid #2d2d2d; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 12px 15px; border-bottom: 1px solid #2d2d2d; }
-        th { background: #252525; color: #00adb5; }
-        
-        .snapshot { width: 150px; border-radius: 4px; border: 1px solid #444; }
-        .no-snap { color: #777; font-style: italic; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; height: 58px; background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 36px; }
+
+        .logo { text-decoration: none; display: flex; align-items: baseline; gap: 1px; }
+        .logo-see { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--ink); letter-spacing: -0.5px; }
+        .logo-lab { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--muted); letter-spacing: -0.5px; }
+
+        .nav { display: flex; }
+        .nav-link { padding: 6px 14px; font-size: 13px; font-weight: 500; color: var(--text-2); text-decoration: none; border-radius: 4px; transition: color 0.12s; }
+        .nav-link:hover { color: var(--ink); }
+        .nav-link.active { color: var(--ink); font-weight: 600; }
+
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .btn-signout {
+            padding: 7px 16px; border-radius: 100px; font-size: 13px; font-weight: 600;
+            font-family: 'Inter', sans-serif; background: var(--ink); color: #fff;
+            border: none; cursor: pointer; text-decoration: none; transition: opacity 0.15s;
+        }
+        .btn-signout:hover { opacity: 0.8; }
+
+        /* ── Main ── */
+        .main {
+            flex: 1; padding: 32px;
+            max-width: 1400px; width: 100%; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 24px;
+        }
+
+        /* ── Page head ── */
+        .page-head {
+            display: flex; align-items: flex-end;
+            justify-content: space-between;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap; gap: 16px;
+        }
+
+        .page-eyebrow {
+            font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+            color: var(--ink); letter-spacing: -1px; line-height: 1;
+        }
+
+        /* Filters */
+        .filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        .filter-select {
+            font-family: 'Inter', sans-serif;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--ink);
+            padding: 8px 30px 8px 12px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23A8A8A4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 11px center;
+            transition: border-color 0.15s;
+        }
+        .filter-select:focus { border-color: var(--ink); }
+
+        .count-chip {
+            font-size: 12px; font-weight: 600; color: var(--text-2);
+            background: var(--surface); border: 1px solid var(--border);
+            padding: 7px 14px; border-radius: 100px;
+        }
+
+        /* ── Table ── */
+        .table-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        thead th {
+            background: var(--bg);
+            padding: 10px 16px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover td { background: var(--bg); }
+        tbody tr.hidden { display: none; }
+
+        td { padding: 13px 16px; font-size: 13px; color: var(--text); vertical-align: middle; }
+
+        .ts-date { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+        .ts-time { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+        /* Pills */
+        .cam-pill {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 10px; border-radius: 100px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.3px;
+        }
+        .cam-pill.cam1   { background: #F1F5F9; color: #334155; border: 1px solid #E2E8F0; }
+        .cam-pill.cam2   { background: #F5F3FF; color: #4C1D95; border: 1px solid #EDE9FE; }
+        .cam-pill.system { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+        .type-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 5px;
+            font-size: 11px; font-weight: 600;
+        }
+        .type-badge.alert  { background: #FEF2F2; color: var(--red);    border: 1px solid #FECACA; }
+        .type-badge.motion { background: #FFFBEB; color: var(--yellow);  border: 1px solid #FDE68A; }
+        .type-badge.auth   { background: #F0FDF4; color: var(--green);   border: 1px solid #BBF7D0; }
+        .type-badge.info   { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+        .msg-text { line-height: 1.45; color: var(--text-2); }
+        .msg-text.alert-msg { color: var(--red); font-weight: 500; }
+
+        .snap-thumb {
+            width: 96px; height: 54px; object-fit: cover;
+            border-radius: 6px; border: 1px solid var(--border);
+            cursor: pointer; display: block;
+            transition: transform 0.15s;
+        }
+        .snap-thumb:hover { transform: scale(1.06); }
+        .no-snap { font-size: 11px; color: var(--muted); font-style: italic; }
+
+        /* ── Pagination ── */
+        .pag-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 16px; border-top: 1px solid var(--border);
+            background: var(--bg); flex-wrap: wrap; gap: 10px;
+        }
+
+        .pag-info { font-size: 12px; color: var(--muted); }
+        .pag-info strong { color: var(--text-2); }
+
+        .pag-controls { display: flex; align-items: center; gap: 3px; }
+
+        .pag-btn {
+            min-width: 32px; height: 32px; padding: 0 8px;
+            border-radius: 6px; font-size: 12px; font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer; border: 1px solid var(--border);
+            background: var(--surface); color: var(--text-2);
+            transition: all 0.12s; user-select: none;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .pag-btn:hover:not(:disabled):not(.active) { background: var(--bg); color: var(--ink); border-color: var(--ink); }
+        .pag-btn.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+        .pag-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .pag-ellipsis { font-size: 12px; color: var(--muted); padding: 0 4px; }
+
+        .per-page-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+
+        .per-page-sel {
+            font-family: 'Inter', sans-serif;
+            background: var(--surface); border: 1px solid var(--border);
+            color: var(--ink); padding: 5px 22px 5px 9px;
+            border-radius: 6px; font-size: 12px; cursor: pointer;
+            outline: none; appearance: none; -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23A8A8A4' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 7px center;
+        }
+
+        /* Empty */
+        .empty { text-align: center; padding: 64px 20px; color: var(--muted); }
+        .empty-icon  { font-size: 32px; margin-bottom: 12px; opacity: 0.3; }
+        .empty-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-2); margin-bottom: 6px; }
+        .empty-sub   { font-size: 13px; }
     </style>
 </head>
 <body>
 
-    <br>
-    <a href="/" class="btn-back">⬅ Return to Live Streams</a>
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="{{ url_for('index') }}" class="logo">
+            <span class="logo-see">See</span><span class="logo-lab">Lab</span>
+        </a>
+        <nav class="nav">
+            <a href="{{ url_for('index') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('logs_page') }}" class="nav-link active">Logs</a>
+            <a href="{{ url_for('upload_page') }}" class="nav-link">Upload</a>
+        </nav>
+    </div>
+    <div class="topbar-right">
+        <a href="{{ url_for('logout') }}" class="btn-signout">Sign out ↗</a>
+    </div>
+</div>
 
-    <div class="container">
-        <h1>Recorded Logs & Security Snapshots</h1>
-        <table>
+<div class="main">
+
+    <div class="page-head">
+        <div>
+            <div class="page-eyebrow">IC1001 · Event History</div>
+            <div class="page-title">Activity Logs</div>
+        </div>
+        <div class="filters">
+            <select class="filter-select" id="cam-filter">
+                <option value="all">All Cameras</option>
+                <option value="1">CAM 01</option>
+                <option value="2">CAM 02</option>
+                <option value="system">System</option>
+            </select>
+            <select class="filter-select" id="type-filter">
+                <option value="all">All Types</option>
+                <option value="alert">Security Alerts</option>
+                <option value="motion">Motion Events</option>
+                <option value="auth">Auth Events</option>
+            </select>
+            <div class="count-chip"><strong id="visible-count">{{ log_list|length }}</strong> entries</div>
+        </div>
+    </div>
+
+    <div class="table-card">
+        {% if log_list %}
+        <table id="log-table">
             <thead>
                 <tr>
-                    <th>Timestamp (Date & Time)</th>
-                    <th>Activity Status Message</th>
-                    <th>Captured Snapshot</th>
+                    <th style="width:130px;">Timestamp</th>
+                    <th style="width:90px;">Camera</th>
+                    <th style="width:110px;">Type</th>
+                    <th>Event</th>
+                    <th style="width:115px;">Snapshot</th>
                 </tr>
             </thead>
             <tbody>
                 {% for log in log_list %}
-                <tr>
-                    <td>{{ log.time }}</td>
-                    <td>{{ log.msg }}</td>
+                {% set is_alert  = "ALERT" in log.msg or "alert" in log.msg.lower() %}
+                {% set is_motion = "movement" in log.msg.lower() or "motion" in log.msg.lower() or "Camera" in log.msg %}
+                {% set is_auth   = "logged in" in log.msg.lower() or "verified" in log.msg.lower() %}
+                {% set cam_num   = "1" if "Camera 1" in log.msg else ("2" if "Camera 2" in log.msg else "system") %}
+                <tr data-cam="{{ cam_num }}" data-type="{{ 'alert' if is_alert else ('motion' if is_motion else ('auth' if is_auth else 'info')) }}">
+                    <td>
+                        <div class="ts-date">{{ log.time[:10] }}</div>
+                        <div class="ts-time">{{ log.time[11:] }}</div>
+                    </td>
+                    <td>
+                        {% if cam_num == "1" %}<span class="cam-pill cam1">● CAM 01</span>
+                        {% elif cam_num == "2" %}<span class="cam-pill cam2">● CAM 02</span>
+                        {% else %}<span class="cam-pill system">SYSTEM</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if is_alert %}<span class="type-badge alert">🔴 Alert</span>
+                        {% elif is_motion %}<span class="type-badge motion">⚠ Motion</span>
+                        {% elif is_auth %}<span class="type-badge auth">✔ Auth</span>
+                        {% else %}<span class="type-badge info">ℹ Info</span>{% endif %}
+                    </td>
+                    <td><div class="msg-text {% if is_alert %}alert-msg{% endif %}">{{ log.msg }}</div></td>
                     <td>
                         {% if log.snapshot %}
                             <a href="{{ url_for('static', filename=log.snapshot) }}" target="_blank">
-                                <img class="snapshot" src="{{ url_for('static', filename=log.snapshot) }}">
+                                <img class="snap-thumb" src="{{ url_for('static', filename=log.snapshot) }}" alt="Snapshot">
                             </a>
-                        {% else %}
-                            <span class="no-snap">No Snapshot Captured</span>
-                        {% endif %}
+                        {% else %}<span class="no-snap">No snapshot</span>{% endif %}
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        <div class="pag-bar">
+            <div class="pag-info" id="pag-info">—</div>
+            <div class="pag-controls" id="pag-controls"></div>
+            <div class="per-page-wrap">
+                Rows per page
+                <select class="per-page-sel" id="per-page">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">No logs yet</div>
+            <div class="empty-sub">Events will appear here once cameras detect activity.</div>
+        </div>
+        {% endif %}
     </div>
+
+</div>
+
+<script>
+    const camSel  = document.getElementById('cam-filter');
+    const typeSel = document.getElementById('type-filter');
+    const ppSel   = document.getElementById('per-page');
+    const allRows = Array.from(document.querySelectorAll('#log-table tbody tr'));
+    const countEl = document.getElementById('visible-count');
+    const infoEl  = document.getElementById('pag-info');
+    const ctrlEl  = document.getElementById('pag-controls');
+    let page = 1;
+
+    function filtered() {
+        const c = camSel.value, t = typeSel.value;
+        return allRows.filter(r =>
+            (c === 'all' || r.dataset.cam === c) &&
+            (t === 'all' || r.dataset.type === t)
+        );
+    }
+
+    function render() {
+        const pp = parseInt(ppSel.value);
+        const rows = filtered();
+        const total = rows.length;
+        const pages = Math.max(1, Math.ceil(total / pp));
+        if (page > pages) page = pages;
+
+        allRows.forEach(r => r.classList.add('hidden'));
+        rows.slice((page - 1) * pp, page * pp).forEach(r => r.classList.remove('hidden'));
+
+        countEl.textContent = total;
+
+        const from = total ? (page - 1) * pp + 1 : 0;
+        const to   = Math.min(page * pp, total);
+        infoEl.innerHTML = `Showing <strong>${from}–${to}</strong> of <strong>${total}</strong> entries`;
+
+        ctrlEl.innerHTML = '';
+        const prev = mkBtn('←', page === 1);
+        prev.onclick = () => { page--; render(); };
+        ctrlEl.appendChild(prev);
+
+        pageNums(page, pages).forEach(p => {
+            if (p === '…') {
+                const s = document.createElement('span');
+                s.className = 'pag-ellipsis'; s.textContent = '…';
+                ctrlEl.appendChild(s);
+            } else {
+                const b = mkBtn(p, false, p === page);
+                b.onclick = () => { page = p; render(); };
+                ctrlEl.appendChild(b);
+            }
+        });
+
+        const next = mkBtn('→', page === pages);
+        next.onclick = () => { page++; render(); };
+        ctrlEl.appendChild(next);
+    }
+
+    function mkBtn(label, disabled, active = false) {
+        const b = document.createElement('button');
+        b.className = 'pag-btn' + (active ? ' active' : '');
+        b.textContent = label; b.disabled = disabled;
+        return b;
+    }
+
+    function pageNums(cur, total) {
+        if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+        const p = [1];
+        if (cur > 3) p.push('…');
+        for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) p.push(i);
+        if (cur < total - 2) p.push('…');
+        p.push(total);
+        return p;
+    }
+
+    camSel.onchange = typeSel.onchange = ppSel.onchange = () => { page = 1; render(); };
+    render();
+</script>
 
 </body>
 </html>
