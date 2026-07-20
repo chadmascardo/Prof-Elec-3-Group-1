@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeeLab — Upload CSV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:      #F7F7F5;
+            --surface: #FFFFFF;
+            --border:  #E4E4E0;
+            --text:    #111110;
+            --text-2:  #6B6B67;
+            --muted:   #A8A8A4;
+            --ink:     #111110;
+            --green:   #1A7A3C;
+            --green-bg:#F0FDF4;
+            --green-bd:#BBF7D0;
+            --red:     #C0392B;
+            --red-bg:  #FEF2F2;
+            --red-bd:  #FECACA;
+            --yellow:  #92400E;
+            --yel-bg:  #FFFBEB;
+            --yel-bd:  #FDE68A;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ── Topbar ── */
+        .topbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; height: 58px; background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        .topbar-left { display: flex; align-items: center; gap: 36px; }
+
+        .logo { text-decoration: none; display: flex; align-items: baseline; gap: 1px; }
+        .logo-see { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--ink); letter-spacing: -0.5px; }
+        .logo-lab { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--muted); letter-spacing: -0.5px; }
+
+        .nav { display: flex; }
+        .nav-link { padding: 6px 14px; font-size: 13px; font-weight: 500; color: var(--text-2); text-decoration: none; border-radius: 4px; transition: color 0.12s; }
+        .nav-link:hover { color: var(--ink); }
+        .nav-link.active { color: var(--ink); font-weight: 600; }
+
+        .topbar-right { display: flex; align-items: center; }
+        .btn-signout {
+            padding: 7px 16px; border-radius: 100px; font-size: 13px; font-weight: 600;
+            font-family: 'Inter', sans-serif; background: var(--ink); color: #fff;
+            border: none; cursor: pointer; text-decoration: none; transition: opacity 0.15s;
+        }
+        .btn-signout:hover { opacity: 0.8; }
+
+        /* ── Main ── */
+        .main {
+            flex: 1; padding: 32px;
+            max-width: 860px; width: 100%; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 28px;
+        }
+
+        /* Page head */
+        .page-head {
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-eyebrow {
+            font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+            color: var(--ink); letter-spacing: -1px; line-height: 1;
+        }
+
+        .page-sub { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+        /* Schema reference */
+        .schema-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 24px;
+        }
+
+        .schema-head {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.2px; color: var(--muted); margin-bottom: 16px;
+        }
+
+        .schema-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .schema-label {
+            font-size: 12px; font-weight: 600; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .schema-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .schema-table th {
+            text-align: left; padding: 7px 10px; background: var(--bg);
+            color: var(--muted); font-weight: 600; border: 1px solid var(--border);
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .schema-table td { padding: 7px 10px; border: 1px solid var(--border); color: var(--text-2); }
+        .schema-table td code { font-family: 'Inter', monospace; color: var(--ink); font-size: 11px; font-weight: 600; }
+
+        /* Upload cards */
+        .upload-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .card-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px; border-bottom: 1px solid var(--border);
+            background: var(--bg);
+        }
+
+        .card-head-left { display: flex; align-items: center; gap: 14px; }
+
+        .card-num {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px; font-weight: 800; letter-spacing: 1px;
+            color: var(--text-2); background: var(--surface);
+            border: 1px solid var(--border); padding: 3px 8px; border-radius: 4px;
+        }
+
+        .card-title { font-size: 14px; font-weight: 600; color: var(--ink); }
+        .card-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        .schema-pill {
+            font-size: 11px; color: var(--muted);
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 4px 10px;
+            font-family: 'Inter', monospace; font-weight: 500;
+        }
+
+        .card-body { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 10px; padding: 36px 20px;
+            text-align: center; cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
+            position: relative;
+            background: var(--bg);
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--ink);
+            background: var(--surface);
+        }
+        .drop-zone input[type="file"] {
+            position: absolute; inset: 0; opacity: 0;
+            cursor: pointer; width: 100%; height: 100%;
+        }
+
+        .drop-icon  { font-size: 28px; margin-bottom: 10px; opacity: 0.3; }
+        .drop-label { font-size: 13px; font-weight: 600; color: var(--text); }
+        .drop-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+        .drop-fname { margin-top: 10px; font-size: 12px; color: var(--ink); font-weight: 600; display: none; }
+
+        /* Upload button */
+        .btn-upload {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 12px; border-radius: 100px; font-size: 13px;
+            font-weight: 600; font-family: 'Inter', sans-serif;
+            border: none; cursor: pointer; transition: opacity 0.15s;
+            background: var(--ink); color: #fff;
+        }
+        .btn-upload:hover:not(:disabled) { opacity: 0.82; }
+        .btn-upload:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* Result */
+        .result-box {
+            border-radius: 8px; padding: 13px 15px;
+            font-size: 12px; line-height: 1.6; display: none;
+        }
+        .result-box.success { background: var(--green-bg); border: 1px solid var(--green-bd); color: #166534; }
+        .result-box.error   { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red); }
+        .result-box.warning { background: var(--yel-bg);   border: 1px solid var(--yel-bd);   color: var(--yellow); }
+
+        .result-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+        .stat { display: flex; align-items: center; gap: 5px; font-weight: 600; }
+        .stat::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .stat.ins::before { background: var(--green); }
+        .stat.upd::before { background: #D97706; }
+        .stat.skp::before { background: var(--red); }
+
+        .error-list { margin-top: 6px; padding-left: 16px; font-size: 11px; }
+
+        .spinner {
+            display: inline-block; width: 13px; height: 13px;
+            border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="{{ url_for('index') }}" class="logo">
+            <span class="logo-see">See</span><span class="logo-lab">Lab</span>
+        </a>
+        <nav class="nav">
+            <a href="{{ url_for('index') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('logs_page') }}" class="nav-link">Logs</a>
+            <a href="{{ url_for('upload_page') }}" class="nav-link active">Upload</a>
+        </nav>
+    </div>
+    <div class="topbar-right">
+        <a href="{{ url_for('logout') }}" class="btn-signout">Sign out ↗</a>
+    </div>
+</div>
+
+<div class="main">
+
+    <div class="page-head">
+        <div class="page-eyebrow">IC1001 · Data Import</div>
+        <div class="page-title">Upload CSV</div>
+        <div class="page-sub">Import room and classroom schedule data. Duplicates are updated automatically.</div>
+    </div>
+
+    <!-- Schema reference -->
+    <div class="schema-card">
+        <div class="schema-head">Expected CSV formats</div>
+        <div class="schema-grid">
+            <div>
+                <div class="schema-label">🏫 Rooms CSV</div>
+                <table class="schema-table">
+                    <thead><tr><th>Column</th><th>Example</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>room_id</code></td><td>IC1001</td></tr>
+                        <tr><td><code>camera</code></td><td>192.168.1.10:8080</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div>
+                <div class="schema-label">📅 Classrooms CSV</div>
+                <table class="schema-table">
+                    <thead><tr><th>Column</th><th>Example</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>room_id</code></td><td>IC1001</td></tr>
+                        <tr><td><code>offer_id</code></td><td>CS301</td></tr>
+                        <tr><td><code>time</code></td><td>09:00-10:30</td></tr>
+                        <tr><td><code>day_of_week</code></td><td>Monday</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rooms upload -->
+    <div class="upload-card">
+        <div class="card-head">
+            <div class="card-head-left">
+                <span class="card-num">01</span>
+                <div>
+                    <div class="card-title">Rooms</div>
+                    <div class="card-sub">Room and camera assignments</div>
+                </div>
+            </div>
+            <span class="schema-pill">room_id, camera</span>
+        </div>
+        <div class="card-body">
+            <div class="drop-zone" id="drop-rooms">
+                <input type="file" accept=".csv" id="file-rooms">
+                <div class="drop-icon">📂</div>
+                <div class="drop-label">Drop CSV here or click to browse</div>
+                <div class="drop-sub">.csv files only</div>
+                <div class="drop-fname" id="fname-rooms"></div>
+            </div>
+            <button class="btn-upload" id="btn-rooms" disabled onclick="uploadCSV('rooms')">
+                Upload Rooms CSV
+            </button>
+            <div class="result-box" id="result-rooms"></div>
+        </div>
+    </div>
+
+    <!-- Classrooms upload -->
+    <div class="upload-card">
+        <div class="card-head">
+            <div class="card-head-left">
+                <span class="card-num">02</span>
+                <div>
+                    <div class="card-title">Classrooms / Schedule</div>
+                    <div class="card-sub">Class schedule per room</div>
+                </div>
+            </div>
+            <span class="schema-pill">room_id, offer_id, time, day_of_week</span>
+        </div>
+        <div class="card-body">
+            <div class="drop-zone" id="drop-classrooms">
+                <input type="file" accept=".csv" id="file-classrooms">
+                <div class="drop-icon">📂</div>
+                <div class="drop-label">Drop CSV here or click to browse</div>
+                <div class="drop-sub">.csv files only</div>
+                <div class="drop-fname" id="fname-classrooms"></div>
+            </div>
+            <button class="btn-upload" id="btn-classrooms" disabled onclick="uploadCSV('classrooms')">
+                Upload Classrooms CSV
+            </button>
+            <div class="result-box" id="result-classrooms"></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    ['rooms', 'classrooms'].forEach(type => {
+        const input = document.getElementById(`file-${type}`);
+        const btn   = document.getElementById(`btn-${type}`);
+        const fname = document.getElementById(`fname-${type}`);
+        const drop  = document.getElementById(`drop-${type}`);
+
+        input.addEventListener('change', () => {
+            if (input.files.length) {
+                fname.textContent = `✔ ${input.files[0].name}`;
+                fname.style.display = 'block';
+                btn.disabled = false;
+            } else {
+                fname.style.display = 'none';
+                btn.disabled = true;
+            }
+        });
+
+        drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
+        drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+        drop.addEventListener('drop', e => {
+            e.preventDefault(); drop.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                const dt = new DataTransfer();
+                dt.items.add(e.dataTransfer.files[0]);
+                input.files = dt.files;
+                input.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+
+    async function uploadCSV(type) {
+        const input = document.getElementById(`file-${type}`);
+        const btn   = document.getElementById(`btn-${type}`);
+        const resEl = document.getElementById(`result-${type}`);
+        if (!input.files.length) return;
+
+        const fd = new FormData();
+        fd.append('file', input.files[0]);
+
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner"></span> Uploading…`;
+        resEl.style.display = 'none';
+
+        try {
+            const res  = await fetch(`/upload/${type}`, { method: 'POST', body: fd });
+            const data = await res.json();
+
+            if (data.error) {
+                show(resEl, 'error', `⚠ ${data.error}`);
+            } else {
+                const warn = data.skipped > 0 || data.errors?.length;
+                let html = `<div class="result-stats">
+                    <span class="stat ins">${data.inserted} inserted</span>
+                    <span class="stat upd">${data.updated} updated</span>
+                    <span class="stat skp">${data.skipped} skipped</span>
+                </div>`;
+                if (data.errors?.length) {
+                    html += `<ul class="error-list">`;
+                    data.errors.slice(0, 10).forEach(e => html += `<li>${e}</li>`);
+                    if (data.errors.length > 10) html += `<li>…and ${data.errors.length - 10} more.</li>`;
+                    html += `</ul>`;
+                } else {
+                    html += `<div>Import completed successfully.</div>`;
+                }
+                show(resEl, warn ? 'warning' : 'success', html);
+                input.value = '';
+                document.getElementById(`fname-${type}`).style.display = 'none';
+            }
+        } catch (e) {
+            show(resEl, 'error', `⚠ Network error: ${e.message}`);
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = type === 'rooms' ? 'Upload Rooms CSV' : 'Upload Classrooms CSV';
+    }
+
+    function show(el, cls, html) {
+        el.className = `result-box ${cls}`;
+        el.innerHTML = html;
+        el.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
