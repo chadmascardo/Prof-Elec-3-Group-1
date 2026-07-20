@@ -1,5 +1,6 @@
 import os
 import cv2
+import numpy as np
 import datetime
 import time
 from flask import Flask, Response, render_template, request, redirect, url_for, session
@@ -33,8 +34,9 @@ MODEL_PROTO   = "models/MobileNetSSD_deploy.prototxt"
 MODEL_WEIGHTS = "models/MobileNetSSD_deploy.caffemodel"
 
 LOG_FILE = "data/activity_log.txt"
+PROFILE_DIR = "admin_profile"
 
-for folder in ["data", "static", "models"]:
+for folder in ["data", "static", "models", PROFILE_DIR]:
     os.makedirs(folder, exist_ok=True)
 if not os.path.exists(LOG_FILE):
     open(LOG_FILE, "w").close()
@@ -124,9 +126,65 @@ def check_time_status():
 _face_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
+_profile_face_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + "haarcascade_profileface.xml"
+)
 _eye_cascade = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_eye.xml"
 )
+FACE_SIZE = (200, 200)
+FACE_MATCH_THRESHOLD = float(os.getenv("FACE_MATCH_THRESHOLD", "60"))
+
+
+def extract_largest_face(frame):
+    """Return the largest detected face as a normalized grayscale crop."""
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.equalizeHist(gray)
+    faces = _face_cascade.detectMultiScale(
+        gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60)
+    )
+    if len(faces):
+        x, y, width, height = max(faces, key=lambda face: face[2] * face[3])
+        face = gray[y : y + height, x : x + width]
+        return cv2.resize(face, FACE_SIZE, interpolation=cv2.INTER_CUBIC)
+
+    # Profile cascade detects side views; run it on both orientations.
+    for candidate in (gray, cv2.flip(gray, 1)):
+        faces = _profile_face_cascade.detectMultiScale(
+            candidate, scaleFactor=1.1, minNeighbors=4, minSize=(60, 60)
+        )
+        if len(faces):
+            x, y, width, height = max(faces, key=lambda face: face[2] * face[3])
+            face = candidate[y : y + height, x : x + width]
+            return cv2.resize(face, FACE_SIZE, interpolation=cv2.INTER_CUBIC)
+
+    return None
+
+
+def load_admin_face_recognizer():
+    """Train an LBPH recognizer from the enrolled admin_*.jpg profile images."""
+    if not hasattr(cv2, "face"):
+        return None, 0
+
+    samples = []
+    for image_path in sorted(
+        filename for filename in os.listdir(PROFILE_DIR)
+        if filename.lower().startswith("admin_")
+        and filename.lower().endswith((".jpg", ".jpeg", ".png"))
+    ):
+        image = cv2.imread(os.path.join(PROFILE_DIR, image_path))
+        if image is None:
+            continue
+        face = extract_largest_face(image)
+        if face is not None:
+            samples.append(face)
+
+    if not samples:
+        return None, 0
+
+    recognizer = cv2.face.LBPHFaceRecognizer_create()
+    recognizer.train(samples, np.zeros(len(samples), dtype=np.int32))
+    return recognizer, len(samples)
 
 
 def detect_faces(frame):
@@ -186,10 +244,8 @@ def backup_auth():
 @app.route("/face_auth")
 def face_auth():
     """
-    Face authentication using dual Haar cascade (face + eye).
-    Requires both a face region AND at least one visible eye — cuts
-    false positives from photos, posters, and screen reflections.
-    No external model file needed: both cascades ship with OpenCV.
+    Authenticate the webcam face against enrolled admin profile photos.
+    LBPH uses a lower confidence score for closer matches.
     """
     cam = cv2.VideoCapture(0)
     time.sleep(0.8)   # let the camera adjust exposure before reading
@@ -201,16 +257,32 @@ def face_auth():
             "login.html", error="Webcam failed to launch. Try using ID Backup login."
         )
 
-    face_count = detect_faces(frame)
+    recognizer, enrolled_count = load_admin_face_recognizer()
+    if recognizer is None:
+        return render_template(
+            "login.html",
+            error="No usable admin face profiles are enrolled. Add clear admin_*.jpg photos.",
+        )
 
-    if face_count > 0:
+    face = extract_largest_face(frame)
+    if face is None or detect_faces(frame) == 0:
+        return render_template(
+            "login.html",
+            error="No face detected. Look directly at the webcam in good lighting and try again.",
+        )
+
+    _, confidence = recognizer.predict(face)
+    if confidence <= FACE_MATCH_THRESHOLD:
         session["is_admin"] = True
-        log_event("Admin verified and logged in via Face + Eye Detection.")
+        log_event(
+            f"Admin verified via enrolled face profile (score: {confidence:.1f}, "
+            f"samples: {enrolled_count})."
+        )
         return redirect(url_for("index"))
 
     return render_template(
         "login.html",
-        error="No face detected. Look directly at the webcam in good lighting and try again.",
+        error="Face did not match the enrolled admin profile. Try better lighting and face the webcam.",
     )
 
 
@@ -229,6 +301,14 @@ def index():
     if not session.get("is_admin"):
         return redirect(url_for("login_page"))
     return render_template("index.html")
+
+
+@app.route("/upload")
+def upload_page():
+    """Render the CSV upload screen linked from the admin navigation."""
+    if not session.get("is_admin"):
+        return redirect(url_for("login_page"))
+    return render_template("Upload.html")
 
 
 # ---------------------------------------------------------------------------
