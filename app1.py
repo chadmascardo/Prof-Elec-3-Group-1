@@ -185,6 +185,12 @@ def _load_cascades():
     if _face_cascade is None:
         _face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
         _eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_eye.xml")
+    if _face_cascade.empty() or _eye_cascade.empty():
+        raise RuntimeError(
+            "Haar cascade files failed to load — broken OpenCV install. "
+            "Run: pip uninstall opencv-python opencv-contrib-python, "
+            "then: pip install \"opencv-contrib-python<5\""
+        )
 
 
 def detect_faces(frame):
@@ -227,15 +233,22 @@ def backup_auth():
 
 @app.route("/face_auth")
 def face_auth():
-    cam = cv2.VideoCapture(0)
-    time.sleep(0.8)
-    ret, frame = cam.read()
-    cam.release()
+    try:
+        cam = cv2.VideoCapture(0)
+        time.sleep(0.8)
+        ret, frame = cam.read()
+        cam.release()
 
-    if not ret or frame is None:
-        return render_template("login.html", error="Webcam failed to launch. Try using ID Backup login.")
+        if not ret or frame is None:
+            return render_template("login.html", error="Webcam failed to launch. Try using ID Backup login.")
 
-    face_count = detect_faces(frame)
+        face_count = detect_faces(frame)
+    except Exception as exc:
+        log_event_csv("SYS", f"Face auth error: {exc}")
+        return render_template(
+            "login.html",
+            error="Face recognition hit an internal error (see motion_logs.csv). Use ID Backup login.",
+        )
     if face_count > 0:
         session["is_admin"] = True
         log_event_csv("SYS", "Admin verified and logged in via Face + Eye Detection.")
@@ -259,6 +272,14 @@ def index():
     if not session.get("is_admin"):
         return redirect(url_for("login_page"))
     return render_template("index.html")
+
+
+@app.route("/upload")
+def upload_page():
+    """Render the CSV upload screen linked from the admin navigation."""
+    if not session.get("is_admin"):
+        return redirect(url_for("login_page"))
+    return render_template("Upload.html")
 
 
 # ---------------------------------------------------------------------------

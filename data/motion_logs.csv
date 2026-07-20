@@ -1,0 +1,4 @@
+timestamp,camera_id,status,snapshot
+2026-07-20 15:31:06,SYS,Admin verified and logged in via Face + Eye Detection.,NONE
+2026-07-20 15:32:46,SYS,"Face auth error: Haar cascade files failed to load — broken OpenCV install. Run: pip uninstall opencv-python opencv-contrib-python, then: pip install ""opencv-contrib-python<5""",NONE
+2026-07-20 15:32:47,SYS,Face auth error: module 'cv2' has no attribute 'data',NONE

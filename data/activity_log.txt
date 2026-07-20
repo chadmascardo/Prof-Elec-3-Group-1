@@ -43841,3 +43841,19 @@ Download and place in models/:
   MobileNetSSD_deploy.prototxt
   MobileNetSSD_deploy.caffemodel
 from: github.com/chuanqi305/MobileNet-SSD|NONE
+2026-07-20 15:26:30|Face auth error: simulated|NONE
+2026-07-20 15:35:23|Admin verified via enrolled face profile (score: 57.5, samples: 8).|NONE
+2026-07-20 15:36:00|Admin verified via enrolled face profile (score: 58.9, samples: 8).|NONE
+2026-07-20 15:36:38|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:36:47|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:36:53|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:37:22|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:39:32|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:39:38|Camera 1: [cat] detected during class hours.|NONE
+2026-07-20 15:39:50|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:39:57|Camera 2: [person] in daytime field monitoring.|NONE
+2026-07-20 15:39:57|Camera 1: [bird] detected during class hours.|NONE
+2026-07-20 15:40:28|Camera 2: [person] in daytime field monitoring.|NONE
+2026-07-20 15:40:30|Camera 1: [dog, horse, sheep] detected during class hours.|NONE
+2026-07-20 15:40:36|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:40:41|Camera 1: [person] detected during class hours.|NONE
