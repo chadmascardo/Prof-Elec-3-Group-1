@@ -2,40 +2,291 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Security Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SeeLab — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        body { background: #121212; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; text-align: center; padding: 50px 20px; }
-        .login-box { max-width: 400px; margin: 0 auto; background: #1c1c1c; padding: 30px; border-radius: 12px; border: 1px solid #2d2d2d; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h2 { color: #00adb5; margin-top: 0; }
-        .btn-face { display: block; width: 100%; background: #00adb5; color: white; padding: 12px; border: none; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; text-decoration: none; margin-bottom: 20px; }
-        .btn-face:hover { background: #008c95; }
-        .divider { border-top: 1px solid #333; margin: 20px 0; position: relative; }
-        .divider span { position: absolute; top: -10px; left: 45%; background: #1c1c1c; padding: 0 10px; color: #777; font-size: 12px; }
-        input[type="text"] { width: 90%; padding: 10px; background: #252525; border: 1px solid #444; border-radius: 6px; color: white; font-size: 14px; margin-bottom: 15px; text-align: center; }
-        .btn-backup { width: 100%; background: #444; color: white; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        .btn-backup:hover { background: #555; }
-        .error-msg { color: #ff5722; margin-top: 15px; font-size: 14px; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:      #F7F7F5;
+            --surface: #FFFFFF;
+            --border:  #E4E4E0;
+            --text:    #111110;
+            --text-2:  #6B6B67;
+            --muted:   #A8A8A4;
+            --ink:     #111110;
+            --red:     #C0392B;
+            --red-bg:  #FEF2F2;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
+
+        /* Left */
+        .left {
+            background: var(--ink);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 48px;
+            min-height: 100vh;
+        }
+
+        .left-logo {
+            display: flex;
+            align-items: baseline;
+            gap: 1px;
+        }
+
+        .logo-see {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 22px;
+            color: #fff;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-lab {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 22px;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: -0.5px;
+        }
+
+        .left-body { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 60px; }
+
+        .left-eyebrow {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 20px;
+        }
+
+        .left-headline {
+            font-family: 'Syne', sans-serif;
+            font-size: 44px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+        }
+
+        .left-headline em {
+            font-style: normal;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .left-footer {
+            font-size: 11px;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 0.3px;
+        }
+
+        /* Right */
+        .right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 40px;
+        }
+
+        .form-box { width: 100%; max-width: 360px; }
+
+        .form-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+
+        .form-sub {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 36px;
+        }
+
+        .error-box {
+            background: var(--red-bg);
+            border: 1px solid #FECACA;
+            border-radius: 7px;
+            padding: 11px 14px;
+            font-size: 13px;
+            color: var(--red);
+            margin-bottom: 24px;
+            display: flex;
+            gap: 8px;
+            align-items: flex-start;
+        }
+
+        .section-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--muted);
+            margin-bottom: 10px;
+        }
+
+        .face-btn {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            padding: 15px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            margin-bottom: 28px;
+        }
+
+        .face-btn:hover {
+            border-color: var(--ink);
+            box-shadow: 0 0 0 3px rgba(17,17,16,0.06);
+        }
+
+        .face-icon {
+            width: 40px; height: 40px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .face-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+        .face-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .face-arrow { margin-left: auto; color: var(--muted); font-size: 18px; }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+        .field { margin-bottom: 14px; }
+
+        label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-2);
+            margin-bottom: 6px;
+            letter-spacing: 0.1px;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 11px 13px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: var(--ink);
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        input[type="password"]:focus {
+            border-color: var(--ink);
+            box-shadow: 0 0 0 3px rgba(17,17,16,0.06);
+        }
+
+        input::placeholder { color: var(--muted); }
+
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--ink);
+            color: #fff;
+            border: none;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: opacity 0.15s;
+            letter-spacing: 0.2px;
+            margin-top: 4px;
+        }
+        .btn-submit:hover { opacity: 0.82; }
+
+        @media (max-width: 700px) {
+            body { grid-template-columns: 1fr; }
+            .left { display: none; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="login-box">
-        <h2>🔒 Admin Portal</h2>
-        <p style="color: #888; font-size: 14px;">Select an authentication method to access the streams dashboard.</p>
-        
-        <a href="/face_auth" class="btn-face">📷 Scan Face Recognition</a>
+<div class="left">
+    <div class="left-logo">
+        <span class="logo-see">See</span><span class="logo-lab">Lab</span>
+    </div>
+    <div class="left-body">
+        <div class="left-eyebrow">Smart Classroom Monitoring</div>
+        <div class="left-headline">Watch<br>every<br><em>moment.</em></div>
+    </div>
+    <div class="left-footer">University of San Jose-Recoletos · Prof. Elec 3 · IC1001</div>
+</div>
 
-        <div class="divider"><span>OR</span></div>
+<div class="right">
+    <div class="form-box">
 
-        <form action="/backup_auth" method="POST">
-            <input type="text" name="admin_id" placeholder="Enter Admin ID Backup Code" required autocomplete="off">
-            <button type="submit" class="btn-backup">Verify ID Code</button>
-        </form>
+        <div class="form-title">Sign in</div>
+        <div class="form-sub">Admin access only.</div>
 
         {% if error %}
-            <div class="error-msg">❌ {{ error }}</div>
+        <div class="error-box"><span>⚠</span><span>{{ error }}</span></div>
         {% endif %}
+
+        <div class="section-label">Biometric</div>
+        <a href="{{ url_for('face_auth') }}" class="face-btn">
+            <div class="face-icon">📸</div>
+            <div>
+                <div class="face-label">Face Recognition</div>
+                <div class="face-sub">Scan via webcam</div>
+            </div>
+            <div class="face-arrow">›</div>
+        </a>
+
+        <div class="divider">or</div>
+
+        <form action="{{ url_for('backup_auth') }}" method="POST">
+            <div class="field">
+                <label for="admin_id">Backup admin ID</label>
+                <input type="password" id="admin_id" name="admin_id" placeholder="Enter your ID" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-submit">Sign in →</button>
+        </form>
+
     </div>
+</div>
 
 </body>
 </html>
