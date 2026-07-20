@@ -9,8 +9,8 @@ app = Flask(__name__)
 app.secret_key = "super_secure_secret_session_key_12345"
 
 # --- SYSTEM SETTINGS ---
-PHONE_1_URL = "http://172.19.254.179:8080/stream.mjpg"   # iPhone (SimpleIPCam)
-PHONE_2_URL = "0"           # Android (IP Webcam)
+PHONE_1_URL = "http://172.21.9.46:8080/stream.mjpg"   # iPhone (SimpleIPCam)
+PHONE_2_URL = 0           # Android (IP Webcam)
 BACKUP_ADMIN_ID = "ADMIN2026"
 
 
@@ -117,9 +117,21 @@ def log_event(message, snapshot_name="NONE"):
         f.write(f"{timestamp}|{message}|{snapshot_name}\n")
 
 
-def check_time_status():
+CAMERA_SCHEDULES = {
+    1: ("09:00", "16:00"),
+    2: ("18:00", "20:00"),
+}
+
+
+def check_time_status(camera_id):
+    """Return whether a camera is currently inside its configured schedule."""
     current_time_str = datetime.datetime.now().strftime("%H:%M")
-    return "CLASS_HOURS" if "09:00" <= current_time_str <= "16:00" else "OFF_HOURS"
+    start_time, end_time = CAMERA_SCHEDULES[camera_id]
+    return (
+        "SCHEDULED_HOURS"
+        if start_time <= current_time_str <= end_time
+        else "OFF_HOURS"
+    )
 
 
 # Pre-load both cascades once at module level — they ship with OpenCV, zero download
@@ -435,10 +447,10 @@ def generate_stream(stream_url, camera_id):
             if living_alert:
                 current_time = time.time()
                 if current_time - last_log_time > 5:
-                    time_status = check_time_status()
+                    time_status = check_time_status(camera_id)
                     labels_str = ", ".join(sorted({l for l, _, _ in living_detections}))
                     if camera_id == 1:
-                        if time_status == "CLASS_HOURS":
+                        if time_status == "SCHEDULED_HOURS":
                             log_event(f"Camera 1: [{labels_str}] detected during class hours.")
                         else:
                             img_filename = f"cam1_alert_{int(current_time)}.jpg"
@@ -456,7 +468,10 @@ def generate_stream(stream_url, camera_id):
                                 img_filename,
                             )
                         else:
-                            log_event(f"Camera 2: [{labels_str}] in daytime field monitoring.")
+                            log_event(
+                                f"Camera 2: [{labels_str}] detected during scheduled "
+                                "monitoring (18:00-20:00)."
+                            )
                     last_log_time = current_time
 
         # ------------------------------------------------------------------ #
