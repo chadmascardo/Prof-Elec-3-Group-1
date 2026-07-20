@@ -3,286 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — IC1001 Surveillance</title>
+    <title>SeeLab — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg:        #0a0a0c;
-            --surface:   #111114;
-            --surface-2: #18181c;
-            --border:    #222228;
-            --border-2:  #2e2e38;
-            --text:      #e8e8ec;
-            --muted:     #6b6b7a;
-            --accent:    #f97316;
-            --green:     #22c55e;
-            --red:       #ef4444;
+            --bg:      #F7F7F5;
+            --surface: #FFFFFF;
+            --border:  #E4E4E0;
+            --text:    #111110;
+            --text-2:  #6B6B67;
+            --muted:   #A8A8A4;
+            --ink:     #111110;
+            --red:     #C0392B;
+            --red-bg:  #FEF2F2;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
             display: grid;
-            place-items: center;
-            padding: 20px;
+            grid-template-columns: 1fr 1fr;
         }
 
-        /* Subtle grid bg */
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background-image:
-                linear-gradient(rgba(249,115,22,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(249,115,22,0.03) 1px, transparent 1px);
-            background-size: 48px 48px;
-            pointer-events: none;
+        /* Left */
+        .left {
+            background: var(--ink);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 48px;
+            min-height: 100vh;
         }
 
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            width: 100%;
-            max-width: 380px;
-            overflow: hidden;
-            position: relative;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+        .left-logo {
+            display: flex;
+            align-items: baseline;
+            gap: 1px;
         }
 
-        .card-header {
-            padding: 28px 28px 20px;
-            border-bottom: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .card-icon {
-            width: 48px;
-            height: 48px;
-            background: var(--surface-2);
-            border: 1px solid var(--border-2);
-            border-radius: 10px;
-            display: grid;
-            place-items: center;
+        .logo-see {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
             font-size: 22px;
-            margin: 0 auto 14px;
+            color: #fff;
+            letter-spacing: -0.5px;
         }
 
-        .card-title {
-            font-size: 17px;
+        .logo-lab {
+            font-family: 'Syne', sans-serif;
             font-weight: 700;
-            color: var(--text);
+            font-size: 22px;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: -0.5px;
+        }
+
+        .left-body { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 60px; }
+
+        .left-eyebrow {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 20px;
+        }
+
+        .left-headline {
+            font-family: 'Syne', sans-serif;
+            font-size: 44px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -1.5px;
+            line-height: 1.1;
+        }
+
+        .left-headline em {
+            font-style: normal;
+            color: rgba(255,255,255,0.35);
+        }
+
+        .left-footer {
+            font-size: 11px;
+            color: rgba(255,255,255,0.2);
+            letter-spacing: 0.3px;
+        }
+
+        /* Right */
+        .right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 40px;
+        }
+
+        .form-box { width: 100%; max-width: 360px; }
+
+        .form-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--ink);
             margin-bottom: 4px;
         }
 
-        .card-sub {
-            font-size: 12px;
+        .form-sub {
+            font-size: 13px;
             color: var(--muted);
+            margin-bottom: 36px;
         }
 
-        .card-body {
-            padding: 24px 28px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* Error */
         .error-box {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.3);
+            background: var(--red-bg);
+            border: 1px solid #FECACA;
             border-radius: 7px;
-            padding: 11px 13px;
-            font-size: 12px;
-            color: #fca5a5;
-            line-height: 1.45;
+            padding: 11px 14px;
+            font-size: 13px;
+            color: var(--red);
+            margin-bottom: 24px;
             display: flex;
             gap: 8px;
             align-items: flex-start;
         }
 
-        /* Section label */
         .section-label {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
-            letter-spacing: 0.8px;
             text-transform: uppercase;
+            letter-spacing: 1.2px;
             color: var(--muted);
             margin-bottom: 10px;
         }
 
-        /* Face scan btn */
-        .btn-face {
+        .face-btn {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
+            gap: 14px;
             width: 100%;
-            padding: 13px;
-            background: var(--surface-2);
-            border: 1px solid var(--border-2);
-            border-radius: 8px;
-            color: var(--text);
-            font-size: 14px;
-            font-weight: 600;
-            text-decoration: none;
+            padding: 15px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
             cursor: pointer;
-            transition: background 0.15s, border-color 0.15s;
+            text-decoration: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            margin-bottom: 28px;
         }
 
-        .btn-face:hover {
-            background: #1e1e24;
-            border-color: var(--accent);
+        .face-btn:hover {
+            border-color: var(--ink);
+            box-shadow: 0 0 0 3px rgba(17,17,16,0.06);
         }
 
-        .btn-face-icon {
-            width: 32px;
-            height: 32px;
-            background: rgba(249,115,22,0.12);
-            border: 1px solid rgba(249,115,22,0.2);
-            border-radius: 6px;
+        .face-icon {
+            width: 40px; height: 40px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
             display: grid;
             place-items: center;
-            font-size: 15px;
+            font-size: 18px;
+            flex-shrink: 0;
         }
 
-        .btn-face-text { text-align: left; }
-        .btn-face-label { font-size: 13px; font-weight: 600; }
-        .btn-face-sub { font-size: 11px; color: var(--muted); font-weight: 400; margin-top: 1px; }
+        .face-label { font-size: 14px; font-weight: 600; color: var(--ink); }
+        .face-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .face-arrow { margin-left: auto; color: var(--muted); font-size: 18px; }
 
-        /* Divider */
         .divider {
             display: flex;
             align-items: center;
             gap: 12px;
-            color: var(--muted);
+            margin-bottom: 24px;
             font-size: 11px;
             font-weight: 600;
+            color: var(--muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border-2);
-        }
-
-        /* Input */
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+        .field { margin-bottom: 14px; }
 
         label {
+            display: block;
             font-size: 12px;
             font-weight: 600;
-            color: var(--muted);
+            color: var(--text-2);
+            margin-bottom: 6px;
+            letter-spacing: 0.1px;
         }
 
         input[type="password"] {
             width: 100%;
-            padding: 10px 12px;
-            background: var(--surface-2);
-            border: 1px solid var(--border-2);
-            border-radius: 7px;
-            color: var(--text);
+            padding: 11px 13px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
             font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            color: var(--ink);
             outline: none;
-            transition: border-color 0.15s;
+            transition: border-color 0.15s, box-shadow 0.15s;
         }
 
         input[type="password"]:focus {
-            border-color: var(--accent);
+            border-color: var(--ink);
+            box-shadow: 0 0 0 3px rgba(17,17,16,0.06);
         }
 
-        input[type="password"]::placeholder { color: var(--muted); }
+        input::placeholder { color: var(--muted); }
 
-        /* Submit btn */
         .btn-submit {
             width: 100%;
-            padding: 11px;
-            background: var(--accent);
+            padding: 12px;
+            background: var(--ink);
             color: #fff;
             border: none;
-            border-radius: 7px;
+            border-radius: 100px;
             font-size: 14px;
-            font-weight: 700;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: opacity 0.15s;
+            letter-spacing: 0.2px;
+            margin-top: 4px;
         }
+        .btn-submit:hover { opacity: 0.82; }
 
-        .btn-submit:hover { background: #ea6a05; }
-
-        .card-footer {
-            padding: 14px 28px;
-            border-top: 1px solid var(--border);
-            text-align: center;
-            font-size: 11px;
-            color: var(--muted);
+        @media (max-width: 700px) {
+            body { grid-template-columns: 1fr; }
+            .left { display: none; }
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div class="card-header">
-        <div class="card-icon">🎥</div>
-        <div class="card-title">Room IC1001 Surveillance</div>
-        <div class="card-sub">Admin access only — authenticate to continue</div>
+<div class="left">
+    <div class="left-logo">
+        <span class="logo-see">See</span><span class="logo-lab">Lab</span>
     </div>
+    <div class="left-body">
+        <div class="left-eyebrow">Smart Classroom Monitoring</div>
+        <div class="left-headline">Watch<br>every<br><em>moment.</em></div>
+    </div>
+    <div class="left-footer">University of San Jose-Recoletos · Prof. Elec 3 · IC1001</div>
+</div>
 
-    <div class="card-body">
+<div class="right">
+    <div class="form-box">
+
+        <div class="form-title">Sign in</div>
+        <div class="form-sub">Admin access only.</div>
 
         {% if error %}
-        <div class="error-box">
-            <span>⚠</span>
-            <span>{{ error }}</span>
-        </div>
+        <div class="error-box"><span>⚠</span><span>{{ error }}</span></div>
         {% endif %}
 
-        <!-- Face Auth -->
-        <div>
-            <div class="section-label">Biometric Login</div>
-            <a href="{{ url_for('face_auth') }}" class="btn-face">
-                <div class="btn-face-icon">📸</div>
-                <div class="btn-face-text">
-                    <div class="btn-face-label">Face Recognition</div>
-                    <div class="btn-face-sub">Scan using your webcam</div>
-                </div>
-            </a>
-        </div>
+        <div class="section-label">Biometric</div>
+        <a href="{{ url_for('face_auth') }}" class="face-btn">
+            <div class="face-icon">📸</div>
+            <div>
+                <div class="face-label">Face Recognition</div>
+                <div class="face-sub">Scan via webcam</div>
+            </div>
+            <div class="face-arrow">›</div>
+        </a>
 
         <div class="divider">or</div>
 
-        <!-- Backup ID -->
-        <div>
-            <div class="section-label">Backup Admin ID</div>
-            <form action="{{ url_for('backup_auth') }}" method="POST">
-                <div class="input-group" style="margin-bottom: 10px;">
-                    <label for="admin_id">Admin ID Code</label>
-                    <input
-                        type="password"
-                        id="admin_id"
-                        name="admin_id"
-                        placeholder="Enter your backup ID"
-                        required
-                        autocomplete="off"
-                    >
-                </div>
-                <button type="submit" class="btn-submit">Verify & Sign In</button>
-            </form>
-        </div>
+        <form action="{{ url_for('backup_auth') }}" method="POST">
+            <div class="field">
+                <label for="admin_id">Backup admin ID</label>
+                <input type="password" id="admin_id" name="admin_id" placeholder="Enter your ID" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-submit">Sign in →</button>
+        </form>
 
-    </div>
-
-    <div class="card-footer">
-        IC1001 · Smart Classroom Monitoring System
     </div>
 </div>
 

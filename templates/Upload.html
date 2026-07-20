@@ -3,32 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Upload — IC1001</title>
+    <title>SeeLab — Upload CSV</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg:        #0a0a0c;
-            --surface:   #111114;
-            --surface-2: #18181c;
-            --border:    #222228;
-            --border-2:  #2e2e38;
-            --text:      #e8e8ec;
-            --muted:     #6b6b7a;
-            --accent:    #f97316;
-            --accent-dim:#7c3210;
-            --green:     #22c55e;
-            --green-dim: #14532d;
-            --red:       #ef4444;
-            --red-dim:   #7f1d1d;
-            --yellow:    #eab308;
-            --yellow-dim:#713f12;
-            --blue:      #60a5fa;
-            --blue-dim:  #1e3a5f;
+            --bg:      #F7F7F5;
+            --surface: #FFFFFF;
+            --border:  #E4E4E0;
+            --text:    #111110;
+            --text-2:  #6B6B67;
+            --muted:   #A8A8A4;
+            --ink:     #111110;
+            --green:   #1A7A3C;
+            --green-bg:#F0FDF4;
+            --green-bd:#BBF7D0;
+            --red:     #C0392B;
+            --red-bg:  #FEF2F2;
+            --red-bd:  #FECACA;
+            --yellow:  #92400E;
+            --yel-bg:  #FFFBEB;
+            --yel-bd:  #FDE68A;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -38,71 +39,86 @@
 
         /* ── Topbar ── */
         .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-            height: 56px;
-            background: var(--surface);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; height: 58px; background: var(--surface);
             border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            flex-shrink: 0;
+            position: sticky; top: 0; z-index: 100;
         }
 
-        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .topbar-left { display: flex; align-items: center; gap: 36px; }
 
-        .logo-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 8px var(--accent);
+        .logo { text-decoration: none; display: flex; align-items: baseline; gap: 1px; }
+        .logo-see { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; color: var(--ink); letter-spacing: -0.5px; }
+        .logo-lab { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--muted); letter-spacing: -0.5px; }
+
+        .nav { display: flex; }
+        .nav-link { padding: 6px 14px; font-size: 13px; font-weight: 500; color: var(--text-2); text-decoration: none; border-radius: 4px; transition: color 0.12s; }
+        .nav-link:hover { color: var(--ink); }
+        .nav-link.active { color: var(--ink); font-weight: 600; }
+
+        .topbar-right { display: flex; align-items: center; }
+        .btn-signout {
+            padding: 7px 16px; border-radius: 100px; font-size: 13px; font-weight: 600;
+            font-family: 'Inter', sans-serif; background: var(--ink); color: #fff;
+            border: none; cursor: pointer; text-decoration: none; transition: opacity 0.15s;
         }
-
-        .breadcrumb { font-size: 14px; color: var(--muted); }
-        .breadcrumb a { color: var(--text); text-decoration: none; font-weight: 600; }
-        .breadcrumb a:hover { color: var(--accent); }
-        .breadcrumb span { margin: 0 6px; }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 7px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-            border: none;
-            transition: background 0.15s, color 0.15s;
-        }
-
-        .btn-ghost {
-            background: transparent;
-            color: var(--muted);
-            border: 1px solid var(--border-2);
-        }
-        .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+        .btn-signout:hover { opacity: 0.8; }
 
         /* ── Main ── */
         .main {
-            flex: 1;
-            padding: 24px;
-            max-width: 900px;
-            width: 100%;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
+            flex: 1; padding: 32px;
+            max-width: 860px; width: 100%; margin: 0 auto;
+            display: flex; flex-direction: column; gap: 28px;
         }
 
-        .page-header { display: flex; flex-direction: column; gap: 4px; }
-        .page-title  { font-size: 18px; font-weight: 700; }
-        .page-sub    { font-size: 12px; color: var(--muted); }
+        /* Page head */
+        .page-head {
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
 
-        /* ── Upload card ── */
+        .page-eyebrow {
+            font-size: 11px; font-weight: 600; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+            color: var(--ink); letter-spacing: -1px; line-height: 1;
+        }
+
+        .page-sub { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+        /* Schema reference */
+        .schema-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 24px;
+        }
+
+        .schema-head {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.2px; color: var(--muted); margin-bottom: 16px;
+        }
+
+        .schema-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+        .schema-label {
+            font-size: 12px; font-weight: 600; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .schema-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .schema-table th {
+            text-align: left; padding: 7px 10px; background: var(--bg);
+            color: var(--muted); font-weight: 600; border: 1px solid var(--border);
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .schema-table td { padding: 7px 10px; border: 1px solid var(--border); color: var(--text-2); }
+        .schema-table td code { font-family: 'Inter', monospace; color: var(--ink); font-size: 11px; font-weight: 600; }
+
+        /* Upload cards */
         .upload-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -111,234 +127,124 @@
         }
 
         .card-head {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 14px 20px;
-            background: var(--surface-2);
-            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 24px; border-bottom: 1px solid var(--border);
+            background: var(--bg);
         }
 
-        .card-head-left { display: flex; align-items: center; gap: 10px; }
+        .card-head-left { display: flex; align-items: center; gap: 14px; }
 
-        .card-icon {
-            width: 34px; height: 34px;
-            border-radius: 7px;
-            display: grid; place-items: center;
-            font-size: 16px;
-            flex-shrink: 0;
+        .card-num {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px; font-weight: 800; letter-spacing: 1px;
+            color: var(--text-2); background: var(--surface);
+            border: 1px solid var(--border); padding: 3px 8px; border-radius: 4px;
         }
 
-        .card-icon.blue  { background: var(--blue-dim);   border: 1px solid rgba(96,165,250,0.2); }
-        .card-icon.green { background: var(--green-dim);  border: 1px solid rgba(34,197,94,0.2);  }
-
-        .card-title { font-size: 14px; font-weight: 700; }
+        .card-title { font-size: 14px; font-weight: 600; color: var(--ink); }
         .card-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
         .schema-pill {
-            font-size: 11px;
-            color: var(--muted);
-            background: var(--bg);
-            border: 1px solid var(--border-2);
-            border-radius: 5px;
-            padding: 4px 10px;
-            font-family: 'Courier New', monospace;
+            font-size: 11px; color: var(--muted);
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 4px; padding: 4px 10px;
+            font-family: 'Inter', monospace; font-weight: 500;
         }
 
-        .card-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+        .card-body { padding: 24px; display: flex; flex-direction: column; gap: 14px; }
 
         /* Drop zone */
         .drop-zone {
-            border: 2px dashed var(--border-2);
-            border-radius: 8px;
-            padding: 30px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
+            border: 2px dashed var(--border);
+            border-radius: 10px; padding: 36px 20px;
+            text-align: center; cursor: pointer;
+            transition: border-color 0.15s, background 0.15s;
             position: relative;
+            background: var(--bg);
         }
-
-        .drop-zone:hover,
-        .drop-zone.dragover { border-color: var(--accent); background: rgba(249,115,22,0.04); }
-
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--ink);
+            background: var(--surface);
+        }
         .drop-zone input[type="file"] {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
+            position: absolute; inset: 0; opacity: 0;
+            cursor: pointer; width: 100%; height: 100%;
         }
 
-        .drop-icon    { font-size: 26px; margin-bottom: 8px; opacity: 0.5; }
-        .drop-label   { font-size: 13px; color: var(--text); font-weight: 600; }
-        .drop-sub     { font-size: 11px; color: var(--muted); margin-top: 4px; }
-        .drop-file-name {
-            margin-top: 8px;
-            font-size: 12px;
-            color: var(--accent);
-            font-weight: 600;
-            display: none;
-        }
+        .drop-icon  { font-size: 28px; margin-bottom: 10px; opacity: 0.3; }
+        .drop-label { font-size: 13px; font-weight: 600; color: var(--text); }
+        .drop-sub   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+        .drop-fname { margin-top: 10px; font-size: 12px; color: var(--ink); font-weight: 600; display: none; }
 
         /* Upload button */
         .btn-upload {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            width: 100%;
-            padding: 11px;
-            border-radius: 7px;
-            font-size: 13px;
-            font-weight: 700;
-            border: none;
-            cursor: pointer;
-            transition: background 0.15s, opacity 0.15s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 12px; border-radius: 100px; font-size: 13px;
+            font-weight: 600; font-family: 'Inter', sans-serif;
+            border: none; cursor: pointer; transition: opacity 0.15s;
+            background: var(--ink); color: #fff;
         }
+        .btn-upload:hover:not(:disabled) { opacity: 0.82; }
+        .btn-upload:disabled { opacity: 0.3; cursor: not-allowed; }
 
-        .btn-upload.blue  { background: #2563eb; color: #fff; }
-        .btn-upload.blue:hover  { background: #1d4ed8; }
-        .btn-upload.green { background: #16a34a; color: #fff; }
-        .btn-upload.green:hover { background: #15803d; }
-        .btn-upload:disabled { opacity: 0.4; cursor: not-allowed; }
-
-        /* Result box */
+        /* Result */
         .result-box {
-            border-radius: 7px;
-            padding: 12px 14px;
-            font-size: 12px;
-            line-height: 1.6;
-            display: none;
+            border-radius: 8px; padding: 13px 15px;
+            font-size: 12px; line-height: 1.6; display: none;
         }
+        .result-box.success { background: var(--green-bg); border: 1px solid var(--green-bd); color: #166534; }
+        .result-box.error   { background: var(--red-bg);   border: 1px solid var(--red-bd);   color: var(--red); }
+        .result-box.warning { background: var(--yel-bg);   border: 1px solid var(--yel-bd);   color: var(--yellow); }
 
-        .result-box.success {
-            background: rgba(34,197,94,0.1);
-            border: 1px solid rgba(34,197,94,0.25);
-            color: #86efac;
-        }
-
-        .result-box.error {
-            background: rgba(239,68,68,0.1);
-            border: 1px solid rgba(239,68,68,0.25);
-            color: #fca5a5;
-        }
-
-        .result-box.warning {
-            background: rgba(234,179,8,0.1);
-            border: 1px solid rgba(234,179,8,0.25);
-            color: #fde68a;
-        }
-
-        .result-stats {
-            display: flex;
-            gap: 14px;
-            flex-wrap: wrap;
-            margin-bottom: 6px;
-        }
-
+        .result-stats { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
         .stat { display: flex; align-items: center; gap: 5px; font-weight: 600; }
-        .stat-dot { width: 6px; height: 6px; border-radius: 50%; }
-        .stat-dot.green  { background: var(--green); }
-        .stat-dot.yellow { background: var(--yellow); }
-        .stat-dot.red    { background: var(--red); }
+        .stat::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+        .stat.ins::before { background: var(--green); }
+        .stat.upd::before { background: #D97706; }
+        .stat.skp::before { background: var(--red); }
 
-        .error-list {
-            margin-top: 6px;
-            padding-left: 14px;
-            font-size: 11px;
-            opacity: 0.85;
-        }
+        .error-list { margin-top: 6px; padding-left: 16px; font-size: 11px; }
 
-        /* Schema reference */
-        .schema-ref {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 14px 16px;
-        }
-
-        .schema-ref-title {
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--muted);
-            margin-bottom: 10px;
-        }
-
-        .schema-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-        }
-
-        .schema-table th {
-            text-align: left;
-            padding: 6px 10px;
-            background: var(--surface);
-            color: var(--muted);
-            font-weight: 600;
-            border: 1px solid var(--border);
-        }
-
-        .schema-table td {
-            padding: 6px 10px;
-            border: 1px solid var(--border);
-            color: var(--text);
-        }
-
-        .schema-table td code {
-            font-family: 'Courier New', monospace;
-            color: var(--accent);
-            font-size: 11px;
-        }
-
-        .schema-table tr:nth-child(even) td { background: rgba(255,255,255,0.01); }
-
-        /* Spinner */
         .spinner {
-            display: inline-block;
-            width: 14px; height: 14px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            vertical-align: middle;
+            display: inline-block; width: 13px; height: 13px;
+            border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+            border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle;
         }
-
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
-<!-- Topbar -->
 <div class="topbar">
     <div class="topbar-left">
-        <div class="logo-dot"></div>
-        <div class="breadcrumb">
-            <a href="{{ url_for('index') }}">IC1001 Surveillance</a>
-            <span>/</span>
-            CSV Upload
-        </div>
+        <a href="{{ url_for('index') }}" class="logo">
+            <span class="logo-see">See</span><span class="logo-lab">Lab</span>
+        </a>
+        <nav class="nav">
+            <a href="{{ url_for('index') }}" class="nav-link">Dashboard</a>
+            <a href="{{ url_for('logs_page') }}" class="nav-link">Logs</a>
+            <a href="{{ url_for('upload_page') }}" class="nav-link active">Upload</a>
+        </nav>
     </div>
-    <a href="{{ url_for('index') }}" class="btn btn-ghost">← Back to Dashboard</a>
+    <div class="topbar-right">
+        <a href="{{ url_for('logout') }}" class="btn-signout">Sign out ↗</a>
+    </div>
 </div>
 
-<!-- Main -->
 <div class="main">
 
-    <div class="page-header">
-        <div class="page-title">CSV Data Upload</div>
-        <div class="page-sub">Import room and classroom schedule data into the database. Duplicate entries are updated automatically.</div>
+    <div class="page-head">
+        <div class="page-eyebrow">IC1001 · Data Import</div>
+        <div class="page-title">Upload CSV</div>
+        <div class="page-sub">Import room and classroom schedule data. Duplicates are updated automatically.</div>
     </div>
 
     <!-- Schema reference -->
-    <div class="schema-ref">
-        <div class="schema-ref-title">Expected CSV Formats</div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; flex-wrap:wrap;">
+    <div class="schema-card">
+        <div class="schema-head">Expected CSV formats</div>
+        <div class="schema-grid">
             <div>
-                <div style="font-size:12px; font-weight:600; color:var(--blue); margin-bottom:6px;">🏫 Rooms CSV</div>
+                <div class="schema-label">🏫 Rooms CSV</div>
                 <table class="schema-table">
                     <thead><tr><th>Column</th><th>Example</th></tr></thead>
                     <tbody>
@@ -348,7 +254,7 @@
                 </table>
             </div>
             <div>
-                <div style="font-size:12px; font-weight:600; color:var(--green); margin-bottom:6px;">📅 Classrooms CSV</div>
+                <div class="schema-label">📅 Classrooms CSV</div>
                 <table class="schema-table">
                     <thead><tr><th>Column</th><th>Example</th></tr></thead>
                     <tbody>
@@ -362,14 +268,14 @@
         </div>
     </div>
 
-    <!-- Room Upload -->
+    <!-- Rooms upload -->
     <div class="upload-card">
         <div class="card-head">
             <div class="card-head-left">
-                <div class="card-icon blue">🏫</div>
+                <span class="card-num">01</span>
                 <div>
                     <div class="card-title">Rooms</div>
-                    <div class="card-sub">Upload room and camera assignments</div>
+                    <div class="card-sub">Room and camera assignments</div>
                 </div>
             </div>
             <span class="schema-pill">room_id, camera</span>
@@ -378,25 +284,25 @@
             <div class="drop-zone" id="drop-rooms">
                 <input type="file" accept=".csv" id="file-rooms">
                 <div class="drop-icon">📂</div>
-                <div class="drop-label">Drop your CSV here or click to browse</div>
-                <div class="drop-sub">Only .csv files accepted</div>
-                <div class="drop-file-name" id="fname-rooms"></div>
+                <div class="drop-label">Drop CSV here or click to browse</div>
+                <div class="drop-sub">.csv files only</div>
+                <div class="drop-fname" id="fname-rooms"></div>
             </div>
-            <button class="btn-upload blue" id="btn-rooms" disabled onclick="uploadCSV('rooms')">
+            <button class="btn-upload" id="btn-rooms" disabled onclick="uploadCSV('rooms')">
                 Upload Rooms CSV
             </button>
             <div class="result-box" id="result-rooms"></div>
         </div>
     </div>
 
-    <!-- Classroom Upload -->
+    <!-- Classrooms upload -->
     <div class="upload-card">
         <div class="card-head">
             <div class="card-head-left">
-                <div class="card-icon green">📅</div>
+                <span class="card-num">02</span>
                 <div>
                     <div class="card-title">Classrooms / Schedule</div>
-                    <div class="card-sub">Upload class schedule assignments per room</div>
+                    <div class="card-sub">Class schedule per room</div>
                 </div>
             </div>
             <span class="schema-pill">room_id, offer_id, time, day_of_week</span>
@@ -405,11 +311,11 @@
             <div class="drop-zone" id="drop-classrooms">
                 <input type="file" accept=".csv" id="file-classrooms">
                 <div class="drop-icon">📂</div>
-                <div class="drop-label">Drop your CSV here or click to browse</div>
-                <div class="drop-sub">Only .csv files accepted</div>
-                <div class="drop-file-name" id="fname-classrooms"></div>
+                <div class="drop-label">Drop CSV here or click to browse</div>
+                <div class="drop-sub">.csv files only</div>
+                <div class="drop-fname" id="fname-classrooms"></div>
             </div>
-            <button class="btn-upload green" id="btn-classrooms" disabled onclick="uploadCSV('classrooms')">
+            <button class="btn-upload" id="btn-classrooms" disabled onclick="uploadCSV('classrooms')">
                 Upload Classrooms CSV
             </button>
             <div class="result-box" id="result-classrooms"></div>
@@ -419,12 +325,11 @@
 </div>
 
 <script>
-    // Wire up file inputs
     ['rooms', 'classrooms'].forEach(type => {
-        const input  = document.getElementById(`file-${type}`);
-        const btn    = document.getElementById(`btn-${type}`);
-        const fname  = document.getElementById(`fname-${type}`);
-        const drop   = document.getElementById(`drop-${type}`);
+        const input = document.getElementById(`file-${type}`);
+        const btn   = document.getElementById(`btn-${type}`);
+        const fname = document.getElementById(`fname-${type}`);
+        const drop  = document.getElementById(`drop-${type}`);
 
         input.addEventListener('change', () => {
             if (input.files.length) {
@@ -437,14 +342,11 @@
             }
         });
 
-        // Drag-over highlight
         drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragover'); });
         drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
         drop.addEventListener('drop', e => {
-            e.preventDefault();
-            drop.classList.remove('dragover');
+            e.preventDefault(); drop.classList.remove('dragover');
             if (e.dataTransfer.files.length) {
-                // Programmatically assign dropped file to the input
                 const dt = new DataTransfer();
                 dt.items.add(e.dataTransfer.files[0]);
                 input.files = dt.files;
@@ -454,59 +356,52 @@
     });
 
     async function uploadCSV(type) {
-        const input   = document.getElementById(`file-${type}`);
-        const btn     = document.getElementById(`btn-${type}`);
-        const resultEl = document.getElementById(`result-${type}`);
-
+        const input = document.getElementById(`file-${type}`);
+        const btn   = document.getElementById(`btn-${type}`);
+        const resEl = document.getElementById(`result-${type}`);
         if (!input.files.length) return;
 
-        const formData = new FormData();
-        formData.append('file', input.files[0]);
+        const fd = new FormData();
+        fd.append('file', input.files[0]);
 
-        // Loading state
         btn.disabled = true;
         btn.innerHTML = `<span class="spinner"></span> Uploading…`;
-        resultEl.style.display = 'none';
+        resEl.style.display = 'none';
 
         try {
-            const res  = await fetch(`/upload/${type}`, { method: 'POST', body: formData });
+            const res  = await fetch(`/upload/${type}`, { method: 'POST', body: fd });
             const data = await res.json();
 
             if (data.error) {
-                showResult(resultEl, 'error', `❌ ${data.error}`);
+                show(resEl, 'error', `⚠ ${data.error}`);
             } else {
-                const hasWarnings = data.skipped > 0 || data.errors?.length;
-                const cls = hasWarnings ? 'warning' : 'success';
+                const warn = data.skipped > 0 || data.errors?.length;
                 let html = `<div class="result-stats">
-                    <span class="stat"><span class="stat-dot green"></span>${data.inserted} inserted</span>
-                    <span class="stat"><span class="stat-dot yellow"></span>${data.updated} updated</span>
-                    <span class="stat"><span class="stat-dot red"></span>${data.skipped} skipped</span>
+                    <span class="stat ins">${data.inserted} inserted</span>
+                    <span class="stat upd">${data.updated} updated</span>
+                    <span class="stat skp">${data.skipped} skipped</span>
                 </div>`;
                 if (data.errors?.length) {
-                    html += `<div>Row issues:<ul class="error-list">`;
-                    data.errors.slice(0, 10).forEach(e => { html += `<li>${e}</li>`; });
+                    html += `<ul class="error-list">`;
+                    data.errors.slice(0, 10).forEach(e => html += `<li>${e}</li>`);
                     if (data.errors.length > 10) html += `<li>…and ${data.errors.length - 10} more.</li>`;
-                    html += `</ul></div>`;
+                    html += `</ul>`;
                 } else {
-                    html += `<div>✔ Import completed successfully.</div>`;
+                    html += `<div>Import completed successfully.</div>`;
                 }
-                showResult(resultEl, cls, html);
-
-                // Reset file input
+                show(resEl, warn ? 'warning' : 'success', html);
                 input.value = '';
                 document.getElementById(`fname-${type}`).style.display = 'none';
             }
-        } catch (err) {
-            showResult(resultEl, 'error', `❌ Network error: ${err.message}`);
+        } catch (e) {
+            show(resEl, 'error', `⚠ Network error: ${e.message}`);
         }
 
         btn.disabled = false;
-        btn.innerHTML = type === 'rooms'
-            ? 'Upload Rooms CSV'
-            : 'Upload Classrooms CSV';
+        btn.innerHTML = type === 'rooms' ? 'Upload Rooms CSV' : 'Upload Classrooms CSV';
     }
 
-    function showResult(el, cls, html) {
+    function show(el, cls, html) {
         el.className = `result-box ${cls}`;
         el.innerHTML = html;
         el.style.display = 'block';

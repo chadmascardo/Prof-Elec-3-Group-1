@@ -3,26 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCTV Dashboard — IC1001</title>
+    <title>SeeLab — Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --bg:        #0a0a0c;
-            --surface:   #111114;
-            --surface-2: #18181c;
-            --border:    #222228;
-            --border-2:  #2e2e38;
-            --text:      #e8e8ec;
-            --muted:     #6b6b7a;
-            --accent:    #f97316;
-            --accent-dim:#7c3210;
-            --green:     #22c55e;
-            --red:       #ef4444;
+            --bg:      #F7F7F5;
+            --surface: #FFFFFF;
+            --border:  #E4E4E0;
+            --text:    #111110;
+            --text-2:  #6B6B67;
+            --muted:   #A8A8A4;
+            --ink:     #111110;
+            --green:   #1A7A3C;
+            --red:     #C0392B;
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
@@ -30,141 +30,162 @@
             flex-direction: column;
         }
 
-        /* ── Top Bar ── */
+        /* ── Topbar ── */
         .topbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 24px;
-            height: 56px;
+            padding: 0 32px;
+            height: 58px;
             background: var(--surface);
             border-bottom: 1px solid var(--border);
             position: sticky;
             top: 0;
             z-index: 100;
-            flex-shrink: 0;
         }
 
-        .topbar-left {
+        .topbar-left { display: flex; align-items: center; gap: 36px; }
+
+        .logo {
+            text-decoration: none;
             display: flex;
-            align-items: center;
-            gap: 12px;
+            align-items: baseline;
+            gap: 1px;
         }
 
-        .logo-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 8px var(--accent);
-            flex-shrink: 0;
+        .logo-see {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 20px;
+            color: var(--ink);
+            letter-spacing: -0.5px;
         }
 
-        .topbar-title {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text);
-            letter-spacing: 0.3px;
-        }
-
-        .topbar-sub {
-            font-size: 12px;
+        .logo-lab {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
             color: var(--muted);
-            margin-left: 4px;
+            letter-spacing: -0.5px;
         }
 
-        .topbar-right {
+        .nav { display: flex; gap: 0; }
+
+        .nav-link {
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-2);
+            text-decoration: none;
+            border-radius: 4px;
+            transition: color 0.12s;
+            letter-spacing: 0.1px;
+        }
+
+        .nav-link:hover { color: var(--ink); }
+        .nav-link.active { color: var(--ink); font-weight: 600; }
+
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+
+        .clock {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-2);
+            letter-spacing: 1px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .btn-signout {
+            padding: 7px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            background: var(--ink);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity 0.15s;
+            letter-spacing: 0.1px;
+        }
+        .btn-signout:hover { opacity: 0.8; }
+
+        /* ── Main ── */
+        .main {
+            flex: 1;
+            padding: 32px;
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* ── Page head ── */
+        .page-head {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-eyebrow {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--ink);
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        /* Status strip */
+        .status-strip {
+            display: flex;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            overflow: hidden;
+        }
+
+        .stat-item {
+            flex: 1;
+            padding: 14px 20px;
+            border-right: 1px solid var(--border);
             display: flex;
             align-items: center;
             gap: 10px;
         }
+        .stat-item:last-child { border-right: none; }
 
-        .time-display {
-            font-size: 13px;
-            font-family: 'Courier New', monospace;
-            color: var(--muted);
-            padding-right: 14px;
-            border-right: 1px solid var(--border-2);
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 7px 14px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-            border: none;
-            transition: background 0.15s, color 0.15s;
-        }
-
-        .btn-logs {
-            background: var(--accent);
-            color: #fff;
-        }
-        .btn-logs:hover { background: #ea6a05; }
-
-        .btn-ghost {
-            background: transparent;
-            color: var(--muted);
-            border: 1px solid var(--border-2);
-        }
-        .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
-
-        /* ── Main content ── */
-        .main {
-            flex: 1;
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        /* ── Status bar ── */
-        .status-bar {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            padding: 10px 16px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            flex-wrap: wrap;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            font-size: 12px;
-            color: var(--muted);
-        }
-
-        .status-dot {
-            width: 7px;
-            height: 7px;
+        .stat-dot {
+            width: 8px; height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
         }
-        .status-dot.live { background: var(--green); box-shadow: 0 0 6px var(--green); }
-        .status-dot.alert { background: var(--red); box-shadow: 0 0 6px var(--red); }
-        .status-dot.idle { background: var(--muted); }
+        .stat-dot.on   { background: var(--green); }
+        .stat-dot.off  { background: var(--red); }
+        .stat-dot.idle { background: var(--muted); }
 
-        .status-label { color: var(--text); font-weight: 500; }
-
-        .status-divider {
-            width: 1px;
-            height: 16px;
-            background: var(--border-2);
-        }
+        .stat-label { font-size: 13px; font-weight: 600; color: var(--ink); }
+        .stat-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
         /* ── Camera grid ── */
         .cam-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
             gap: 20px;
         }
 
@@ -181,229 +202,187 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 12px 16px;
-            background: var(--surface-2);
+            padding: 14px 18px;
             border-bottom: 1px solid var(--border);
         }
 
-        .cam-header-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .cam-left { display: flex; align-items: center; gap: 12px; }
 
-        .cam-number {
+        .cam-num {
+            font-family: 'Syne', sans-serif;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 800;
             letter-spacing: 1px;
-            color: var(--accent);
-            background: var(--accent-dim);
+            color: var(--text-2);
+            background: var(--bg);
+            border: 1px solid var(--border);
             padding: 3px 8px;
             border-radius: 4px;
         }
 
-        .cam-name {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text);
-        }
+        .cam-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+        .cam-src  { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-        .cam-source {
-            font-size: 11px;
-            color: var(--muted);
-        }
-
-        .live-badge {
+        .live-tag {
             display: flex;
             align-items: center;
             gap: 5px;
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
+            letter-spacing: 0.8px;
             color: var(--green);
-            letter-spacing: 0.5px;
         }
 
-        .live-badge::before {
-            content: '';
-            width: 6px;
-            height: 6px;
+        .live-dot {
+            width: 6px; height: 6px;
             border-radius: 50%;
             background: var(--green);
-            animation: pulse 2s infinite;
+            animation: blink 2s infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
         .stream-wrap {
-            position: relative;
             width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #000;
+            aspect-ratio: 16/9;
+            background: #0F0F0E;
         }
 
         .stream-wrap img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
+            width: 100%; height: 100%;
+            object-fit: cover; display: block;
         }
-
-        .stream-offline {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .stream-offline-icon { font-size: 28px; opacity: 0.4; }
 
         .cam-footer {
-            padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            font-size: 11px;
-            color: var(--muted);
-            background: var(--surface-2);
+            padding: 10px 18px;
             border-top: 1px solid var(--border);
+            background: var(--bg);
         }
 
-        .cam-footer-stat {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .cam-footer-stat span { color: var(--text); font-weight: 500; }
+        .cam-meta { font-size: 11px; color: var(--muted); }
+        .cam-meta strong { color: var(--text-2); font-weight: 500; }
     </style>
 </head>
 <body>
 
-<!-- Top bar -->
 <div class="topbar">
     <div class="topbar-left">
-        <div class="logo-dot"></div>
-        <div>
-            <span class="topbar-title">IC1001 Surveillance</span>
-            <span class="topbar-sub">/ Dashboard</span>
-        </div>
+        <a href="{{ url_for('index') }}" class="logo">
+            <span class="logo-see">See</span><span class="logo-lab">Lab</span>
+        </a>
+        <nav class="nav">
+            <a href="{{ url_for('index') }}" class="nav-link active">Dashboard</a>
+            <a href="{{ url_for('logs_page') }}" class="nav-link">Logs</a>
+            <a href="{{ url_for('upload_page') }}" class="nav-link">Upload</a>
+        </nav>
     </div>
     <div class="topbar-right">
-        <div class="time-display" id="clock">--:--:--</div>
-        <a href="{{ url_for('upload_page') }}" class="btn btn-ghost">
-            📤 Upload CSV
-        </a>
-        <a href="{{ url_for('logs_page') }}" class="btn btn-logs">
-            📋 Activity Logs
-        </a>
-        <a href="{{ url_for('logout') }}" class="btn btn-ghost">
-            Sign Out
-        </a>
+        <div class="clock" id="clock">--:--:--</div>
+        <a href="{{ url_for('logout') }}" class="btn-signout">Sign out ↗</a>
     </div>
 </div>
 
-<!-- Main -->
 <div class="main">
 
-    <!-- Status bar -->
-    <div class="status-bar">
-        <div class="status-item">
-            <div class="status-dot live"></div>
-            <span class="status-label">2 Cameras Online</span>
-        </div>
-        <div class="status-divider"></div>
-        <div class="status-item">
-            <div class="status-dot live"></div>
-            Motion Detection Active
-        </div>
-        <div class="status-divider"></div>
-        <div class="status-item" id="time-status">
-            <div class="status-dot idle"></div>
-            Checking schedule…
-        </div>
-        <div class="status-divider"></div>
-        <div class="status-item">
-            MOG2 threshold: <span style="color: var(--text); margin-left:4px;">1500 px²</span>
+    <div class="page-head">
+        <div>
+            <div class="page-eyebrow">Room IC1001 · Live Feeds</div>
+            <div class="page-title">Dashboard</div>
         </div>
     </div>
 
-    <!-- Camera grid -->
-    <div class="cam-grid">
+    <div class="status-strip">
+        <div class="stat-item">
+            <div class="stat-dot on"></div>
+            <div>
+                <div class="stat-label">2 Cameras Online</div>
+                <div class="stat-sub">Both streams active</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-dot on"></div>
+            <div>
+                <div class="stat-label">Motion Detection</div>
+                <div class="stat-sub">MOG2 · 1500 px² threshold</div>
+            </div>
+        </div>
+        <div class="stat-item" id="time-stat">
+            <div class="stat-dot idle" id="time-dot"></div>
+            <div>
+                <div class="stat-label" id="time-label">Checking…</div>
+                <div class="stat-sub">09:00 – 16:00 class window</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-dot on"></div>
+            <div>
+                <div class="stat-label">Philippine Time</div>
+                <div class="stat-sub">UTC +8 · Asia/Manila</div>
+            </div>
+        </div>
+    </div>
 
-        <!-- CAM 01 -->
+    <div class="cam-grid">
         <div class="cam-card">
             <div class="cam-header">
-                <div class="cam-header-left">
-                    <span class="cam-number">CAM 01</span>
+                <div class="cam-left">
+                    <span class="cam-num">CAM 01</span>
                     <div>
                         <div class="cam-name">Classroom View</div>
-                        <div class="cam-source">iPhone · SimpleIPCam</div>
+                        <div class="cam-src">iPhone · SimpleIPCam</div>
                     </div>
                 </div>
-                <div class="live-badge">LIVE</div>
+                <div class="live-tag"><div class="live-dot"></div>LIVE</div>
             </div>
             <div class="stream-wrap">
                 <img src="{{ url_for('video_feed_1') }}" alt="Camera 1">
             </div>
             <div class="cam-footer">
-                <div class="cam-footer-stat">IP: <span>192.168.68.105:8080</span></div>
-                <div class="cam-footer-stat">Format: <span>MJPEG</span></div>
+                <div class="cam-meta">IP: <strong>192.168.68.105:8080</strong></div>
+                <div class="cam-meta">MJPEG</div>
             </div>
         </div>
 
-        <!-- CAM 02 -->
         <div class="cam-card">
             <div class="cam-header">
-                <div class="cam-header-left">
-                    <span class="cam-number">CAM 02</span>
+                <div class="cam-left">
+                    <span class="cam-num">CAM 02</span>
                     <div>
                         <div class="cam-name">Perimeter View</div>
-                        <div class="cam-source">Android · IP Webcam</div>
+                        <div class="cam-src">Android · IP Webcam</div>
                     </div>
                 </div>
-                <div class="live-badge">LIVE</div>
+                <div class="live-tag"><div class="live-dot"></div>LIVE</div>
             </div>
             <div class="stream-wrap">
                 <img src="{{ url_for('video_feed_2') }}" alt="Camera 2">
             </div>
             <div class="cam-footer">
-                <div class="cam-footer-stat">IP: <span>172.19.245.134:8080</span></div>
-                <div class="cam-footer-stat">Format: <span>MJPEG</span></div>
+                <div class="cam-meta">IP: <strong>172.19.245.134:8080</strong></div>
+                <div class="cam-meta">MJPEG</div>
             </div>
         </div>
-
     </div>
+
 </div>
 
 <script>
-    // Clock
     function tick() {
         const now = new Date();
-        document.getElementById('clock').textContent = now.toLocaleTimeString('en-US', { hour12: false, timeZone: 'Asia/Manila' });
+        document.getElementById('clock').textContent =
+            now.toLocaleTimeString('en-US', { hour12: false, timeZone: 'Asia/Manila' });
 
-        // Time status
-        const manilaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
-        const h = manilaTime.getHours(), m = manilaTime.getMinutes();
-        const mins = h * 60 + m;
-        const classStart = 9 * 60, classEnd = 16 * 60;
-        const el = document.getElementById('time-status');
-        if (mins >= classStart && mins <= classEnd) {
-            el.innerHTML = `<div class="status-dot live"></div> Class Hours (09:00 – 16:00)`;
-        } else {
-            el.innerHTML = `<div class="status-dot alert"></div> <span style="color:var(--red)">Off-Hours Monitoring Active</span>`;
-        }
+        const manila = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+        const mins   = manila.getHours() * 60 + manila.getMinutes();
+        const inClass = mins >= 540 && mins <= 960;
+
+        document.getElementById('time-dot').className   = 'stat-dot ' + (inClass ? 'on' : 'off');
+        document.getElementById('time-label').textContent = inClass ? 'Class Hours' : 'Off-Hours Alert Mode';
     }
-    tick();
-    setInterval(tick, 1000);
+    tick(); setInterval(tick, 1000);
 </script>
-
 </body>
 </html>
