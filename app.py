@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = "super_secure_secret_session_key_12345"
 
 # --- SYSTEM SETTINGS ---
-PHONE_1_URL = "http://172.19.241.230:8080/video"   # iPhone (SimpleIPCam)
+PHONE_1_URL = "http://172.21.9.46:8080/stream.mjpg"   # iPhone (SimpleIPCam)
 PHONE_2_URL = 0           # Android (IP Webcam)
 BACKUP_ADMIN_ID = "ADMIN2026"
 
@@ -117,9 +117,21 @@ def log_event(message, snapshot_name="NONE"):
         f.write(f"{timestamp}|{message}|{snapshot_name}\n")
 
 
-def check_time_status():
+CAMERA_SCHEDULES = {
+    1: ("09:00", "16:00"),
+    2: ("18:00", "20:00"),
+}
+
+
+def check_time_status(camera_id):
+    """Return whether a camera is currently inside its configured schedule."""
     current_time_str = datetime.datetime.now().strftime("%H:%M")
-    return "CLASS_HOURS" if "09:00" <= current_time_str <= "16:00" else "OFF_HOURS"
+    start_time, end_time = CAMERA_SCHEDULES[camera_id]
+    return (
+        "SCHEDULED_HOURS"
+        if start_time <= current_time_str <= end_time
+        else "OFF_HOURS"
+    )
 
 
 # Pre-load both cascades once at module level — they ship with OpenCV, zero download
@@ -134,12 +146,6 @@ _eye_cascade = cv2.CascadeClassifier(
 )
 FACE_SIZE = (200, 200)
 FACE_MATCH_THRESHOLD = float(os.getenv("FACE_MATCH_THRESHOLD", "60"))
-
-# Empty cascades (broken/mixed OpenCV install) make detectMultiScale raise
-# cv2.error, which crashed /face_auth with a 500. Detect that state up front.
-_CASCADES_OK = not (
-    _face_cascade.empty() or _profile_face_cascade.empty() or _eye_cascade.empty()
-)
 
 
 def extract_largest_face(frame):
@@ -253,47 +259,31 @@ def face_auth():
     Authenticate the webcam face against enrolled admin profile photos.
     LBPH uses a lower confidence score for closer matches.
     """
-    if not _CASCADES_OK:
+    cam = cv2.VideoCapture(0)
+    time.sleep(0.8)   # let the camera adjust exposure before reading
+    ret, frame = cam.read()
+    cam.release()
+
+    if not ret or frame is None:
         return render_template(
-            "login.html",
-            error="Face detection models failed to load. Reinstall OpenCV "
-                  "(pip install opencv-contrib-python) or use ID Backup login.",
+            "login.html", error="Webcam failed to launch. Try using ID Backup login."
         )
 
-    try:
-        cam = cv2.VideoCapture(0)
-        time.sleep(0.8)   # let the camera adjust exposure before reading
-        ret, frame = cam.read()
-        cam.release()
-
-        if not ret or frame is None:
-            return render_template(
-                "login.html", error="Webcam failed to launch. Try using ID Backup login."
-            )
-
-        recognizer, enrolled_count = load_admin_face_recognizer()
-        if recognizer is None:
-            return render_template(
-                "login.html",
-                error="No usable admin face profiles are enrolled. Add clear admin_*.jpg photos.",
-            )
-
-        face = extract_largest_face(frame)
-        if face is None or detect_faces(frame) == 0:
-            return render_template(
-                "login.html",
-                error="No face detected. Look directly at the webcam in good lighting and try again.",
-            )
-
-        _, confidence = recognizer.predict(face)
-    except Exception as exc:
-        log_event(f"Face auth error: {exc}")
+    recognizer, enrolled_count = load_admin_face_recognizer()
+    if recognizer is None:
         return render_template(
             "login.html",
-            error="Face recognition hit an internal error (see activity log). "
-                  "Use ID Backup login.",
+            error="No usable admin face profiles are enrolled. Add clear admin_*.jpg photos.",
         )
 
+    face = extract_largest_face(frame)
+    if face is None or detect_faces(frame) == 0:
+        return render_template(
+            "login.html",
+            error="No face detected. Look directly at the webcam in good lighting and try again.",
+        )
+
+    _, confidence = recognizer.predict(face)
     if confidence <= FACE_MATCH_THRESHOLD:
         session["is_admin"] = True
         log_event(
@@ -457,10 +447,10 @@ def generate_stream(stream_url, camera_id):
             if living_alert:
                 current_time = time.time()
                 if current_time - last_log_time > 5:
-                    time_status = check_time_status()
+                    time_status = check_time_status(camera_id)
                     labels_str = ", ".join(sorted({l for l, _, _ in living_detections}))
                     if camera_id == 1:
-                        if time_status == "CLASS_HOURS":
+                        if time_status == "SCHEDULED_HOURS":
                             log_event(f"Camera 1: [{labels_str}] detected during class hours.")
                         else:
                             img_filename = f"cam1_alert_{int(current_time)}.jpg"
@@ -478,7 +468,10 @@ def generate_stream(stream_url, camera_id):
                                 img_filename,
                             )
                         else:
-                            log_event(f"Camera 2: [{labels_str}] in daytime field monitoring.")
+                            log_event(
+                                f"Camera 2: [{labels_str}] detected during scheduled "
+                                "monitoring (18:00-20:00)."
+                            )
                     last_log_time = current_time
 
         # ------------------------------------------------------------------ #
