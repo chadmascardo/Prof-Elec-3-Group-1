@@ -17,6 +17,7 @@ BACKUP_ADMIN_ID = "ADMIN2026"
 # --- DETECTION TUNING ---
 MOG2_MIN_AREA  = 1500   # px² — minimum motion blob to bother running DNN on
 DNN_CONFIDENCE = 0.50   # confidence threshold for MobileNet-SSD
+DNN_FRAME_INTERVAL = 5  # run the DNN every Nth motion frame; reuse boxes in between
 
 # Only these class labels count as "living things"
 LIVING_CLASSES = {"person", "bird", "cat", "cow", "dog", "horse", "sheep"}
@@ -88,7 +89,10 @@ def contains_living_thing(frame):
         class_id = int(detections[0, 0, i, 1])
         label = SSD_CLASSES[class_id] if class_id < len(SSD_CLASSES) else "unknown"
         if label in LIVING_CLASSES:
-            found.append((label, conf, detections[0, 0, i, 3:7]))
+            box = detections[0, 0, i, 3:7]
+            # DNN can emit inf/NaN coords on noisy frames — drop those boxes
+            if np.isfinite(box).all():
+                found.append((label, conf, box))
 
     return bool(found), found
 
@@ -97,8 +101,15 @@ def draw_living_detections(frame, detections):
     """Draw green bounding boxes + label tags for living-thing detections only."""
     h, w = frame.shape[:2]
     for label, conf, box in detections:
-        x1, y1 = int(box[0] * w), int(box[1] * h)
-        x2, y2 = int(box[2] * w), int(box[3] * h)
+        # Sanitize: skip non-finite boxes, clamp coords into the frame
+        if not np.isfinite(box).all():
+            continue
+        x1 = int(np.clip(box[0] * w, 0, w - 1))
+        y1 = int(np.clip(box[1] * h, 0, h - 1))
+        x2 = int(np.clip(box[2] * w, 0, w - 1))
+        y2 = int(np.clip(box[3] * h, 0, h - 1))
+        if x2 <= x1 or y2 <= y1:
+            continue
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 50), 2)
         tag = f"{label} {conf:.0%}"
         (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
@@ -331,12 +342,12 @@ def open_capture(stream_url):
     """
     Open a VideoCapture tuned for phone HTTP/MJPEG streams.
     - CAP_ANY lets OpenCV pick the right backend automatically
-    - BUFFERSIZE=4 gives MOG2 enough consecutive frames to build its background
-      model, without stale frame pile-up causing flicker
+    - BUFFERSIZE=1 keeps only the freshest frame — larger buffers make the
+      feed lag behind reality whenever processing slows down
     - No FFMPEG-specific timeout props: they silently break other backends
     """
     cap = cv2.VideoCapture(stream_url, cv2.CAP_ANY)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 4)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     return cap
 
 
@@ -391,6 +402,12 @@ def generate_stream(stream_url, camera_id):
     last_log_time  = 0
     consec_failures = 0
 
+    # DNN frame-skip cache — the forward pass costs 100-300 ms on CPU, so run
+    # it every Nth motion frame and reuse the last boxes in between.
+    frames_since_dnn = DNN_FRAME_INTERVAL   # force a run on the first motion frame
+    last_living_alert = False
+    last_living_detections = []
+
     while True:
         # ------------------------------------------------------------------ #
         # FRAME GRAB — tolerate brief network blips before reconnecting        #
@@ -439,10 +456,14 @@ def generate_stream(stream_url, camera_id):
         living_detections = []
 
         if motion_blobs:
-            try:
-                living_alert, living_detections = contains_living_thing(frame)
-            except Exception as exc:
-                log_event(f"Camera {camera_id} DNN error: {exc}")
+            if frames_since_dnn >= DNN_FRAME_INTERVAL:
+                frames_since_dnn = 0
+                try:
+                    last_living_alert, last_living_detections = contains_living_thing(frame)
+                except Exception as exc:
+                    log_event(f"Camera {camera_id} DNN error: {exc}")
+            frames_since_dnn += 1
+            living_alert, living_detections = last_living_alert, last_living_detections
 
             if living_alert:
                 current_time = time.time()
@@ -473,6 +494,10 @@ def generate_stream(stream_url, camera_id):
                                 "monitoring (18:00-20:00)."
                             )
                     last_log_time = current_time
+        else:
+            # Motion stopped — drop cached boxes, re-arm an immediate DNN run
+            frames_since_dnn = DNN_FRAME_INTERVAL
+            last_living_alert, last_living_detections = False, []
 
         # ------------------------------------------------------------------ #
         # CCTV OVERLAY — always drawn so it looks like a real camera feed      #
@@ -481,7 +506,10 @@ def generate_stream(stream_url, camera_id):
 
         # 1. Detection status banner (top-left)
         if living_alert:
-            draw_living_detections(frame, living_detections)
+            try:
+                draw_living_detections(frame, living_detections)
+            except Exception as exc:
+                log_event(f"Camera {camera_id} overlay error: {exc}")
             cv2.rectangle(frame, (0, 0), (295, 38), (0, 0, 0), -1)
             cv2.putText(frame, "!! LIVING THING DETECTED !!", (6, 26),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 220, 60), 2)

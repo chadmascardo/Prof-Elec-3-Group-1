@@ -48115,3 +48115,15 @@ from: github.com/chuanqi305/MobileNet-SSD|NONE
 2026-07-20 15:17:55|Camera 2 DNN error: module 'cv2.dnn' has no attribute 'readNetFromCaffe'|NONE
 2026-07-20 15:17:55|Camera 2 DNN error: module 'cv2.dnn' has no attribute 'readNetFromCaffe'|NONE
 2026-07-20 15:17:56|Camera 2 DNN error: module 'cv2.dnn' has no attribute 'readNetFromCaffe'|NONE
+2026-07-20 15:44:22|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533462.jpg
+2026-07-20 15:44:28|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533468.jpg
+2026-07-20 15:44:33|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533473.jpg
+2026-07-20 15:44:38|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533478.jpg
+2026-07-20 15:44:43|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533483.jpg
+2026-07-20 15:44:48|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533488.jpg
+2026-07-20 15:44:53|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533493.jpg
+2026-07-20 15:44:58|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533498.jpg
+2026-07-20 15:45:03|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533503.jpg
+2026-07-20 15:45:10|!!! SECURITY ALERT !!! [person] — Perimeter breach during lock window.|cam2_alert_1784533510.jpg
+2026-07-20 15:48:08|Camera 1: [person] detected during class hours.|NONE
+2026-07-20 15:59:50|Admin verified via enrolled face profile (score: 51.4, samples: 8).|NONE

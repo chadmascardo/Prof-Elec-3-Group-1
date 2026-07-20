@@ -1,6 +1,7 @@
 import os
 import cv2
 import csv
+import numpy as np
 import datetime
 import time
 from flask import Flask, Response, render_template, request, redirect, url_for, session
@@ -16,6 +17,7 @@ BACKUP_ADMIN_ID = "ADMIN2026"
 # --- DETECTION TUNING ---
 MOG2_MIN_AREA  = 1500   # px² — minimum motion blob to bother running DNN on
 DNN_CONFIDENCE = 0.50   # confidence threshold for MobileNet-SSD
+DNN_FRAME_INTERVAL = 5  # run the DNN every Nth motion frame; reuse boxes in between
 
 # Only these class labels count as "living things"
 LIVING_CLASSES = {"person", "bird", "cat", "cow", "dog", "horse", "sheep"}
@@ -114,7 +116,10 @@ def contains_living_thing(frame):
         class_id = int(detections[0, 0, i, 1])
         label = SSD_CLASSES[class_id] if class_id < len(SSD_CLASSES) else "unknown"
         if label in LIVING_CLASSES:
-            found.append((label, conf, detections[0, 0, i, 3:7]))
+            box = detections[0, 0, i, 3:7]
+            # DNN can emit inf/NaN coords on noisy frames — drop those boxes
+            if np.isfinite(box).all():
+                found.append((label, conf, box))
 
     return bool(found), found
 
@@ -122,8 +127,15 @@ def contains_living_thing(frame):
 def draw_living_detections(frame, detections):
     h, w = frame.shape[:2]
     for label, conf, box in detections:
-        x1, y1 = int(box[0] * w), int(box[1] * h)
-        x2, y2 = int(box[2] * w), int(box[3] * h)
+        # Sanitize: skip non-finite boxes, clamp coords into the frame
+        if not np.isfinite(box).all():
+            continue
+        x1 = int(np.clip(box[0] * w, 0, w - 1))
+        y1 = int(np.clip(box[1] * h, 0, h - 1))
+        x2 = int(np.clip(box[2] * w, 0, w - 1))
+        y2 = int(np.clip(box[3] * h, 0, h - 1))
+        if x2 <= x1 or y2 <= y1:
+            continue
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 50), 2)
         tag = f"{label} {conf:.0%}"
         (tw, th), _ = cv2.getTextSize(tag, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)
@@ -288,7 +300,7 @@ def upload_page():
 
 def open_capture(stream_url):
     cap = cv2.VideoCapture(stream_url, cv2.CAP_ANY)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 4)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # freshest frame only — larger buffers add lag
     return cap
 
 
@@ -316,6 +328,12 @@ def generate_stream(stream_url, camera_id):
     
     last_log_time  = 0
     consec_failures = 0
+
+    # DNN frame-skip cache — the forward pass costs 100-300 ms on CPU, so run
+    # it every Nth motion frame and reuse the last boxes in between.
+    frames_since_dnn = DNN_FRAME_INTERVAL   # force a run on the first motion frame
+    last_living_alert = False
+    last_living_detections = []
 
     while True:
         try:
@@ -355,10 +373,14 @@ def generate_stream(stream_url, camera_id):
         living_detections = []
 
         if motion_blobs:
-            try:
-                living_alert, living_detections = contains_living_thing(frame)
-            except Exception as exc:
-                log_event_csv(camera_id, f"DNN evaluation pipeline fault: {exc}")
+            if frames_since_dnn >= DNN_FRAME_INTERVAL:
+                frames_since_dnn = 0
+                try:
+                    last_living_alert, last_living_detections = contains_living_thing(frame)
+                except Exception as exc:
+                    log_event_csv(camera_id, f"DNN evaluation pipeline fault: {exc}")
+            frames_since_dnn += 1
+            living_alert, living_detections = last_living_alert, last_living_detections
 
             if living_alert:
                 last_living_detection_time[camera_id] = current_time
@@ -383,7 +405,11 @@ def generate_stream(stream_url, camera_id):
                         
                     last_log_time = current_time
         else:
-            # Empty Room Condition: If system was marked active but no targets have been 
+            # Motion stopped — drop cached boxes, re-arm an immediate DNN run
+            frames_since_dnn = DNN_FRAME_INTERVAL
+            last_living_alert, last_living_detections = False, []
+
+            # Empty Room Condition: If system was marked active but no targets have been
             # detected for 10 straight seconds, register the space as vacant.
             if room_states[camera_id] == "OCCUPIED" and (current_time - last_living_detection_time[camera_id] > 10.0):
                 room_states[camera_id] = "EMPTY"
@@ -393,7 +419,10 @@ def generate_stream(stream_url, camera_id):
         h_f, w_f = frame.shape[:2]
 
         if living_alert:
-            draw_living_detections(frame, living_detections)
+            try:
+                draw_living_detections(frame, living_detections)
+            except Exception as exc:
+                log_event_csv(camera_id, f"Overlay drawing fault: {exc}")
             cv2.rectangle(frame, (0, 0), (295, 38), (0, 0, 0), -1)
             cv2.putText(frame, "!! LIVING THING DETECTED !!", (6, 26), cv2.FONT_HERSHEY_SIMPLEX, 0.62, (0, 220, 60), 2)
         elif motion_blobs:
